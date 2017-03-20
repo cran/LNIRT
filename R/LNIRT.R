@@ -10,7 +10,8 @@
 #' @param Y
 #' a Person-x-Item matrix of responses.
 #' @param data
-#' either a list or a simLNIRT object containing the response time and response matrices. 
+#' either a list or a simLNIRT object containing the response time and response matrices 
+#' and optionally the predictors for the item and person parameters. 
 #' If a simLNIRT object is provided, in the summary the simulated item and time parameters are shown alongside of the estimates.
 #' If the required variables cannot be found in the list, or if no data object is given, then the variables are taken
 #' from the environment from which LNIRT is called.
@@ -21,7 +22,7 @@
 #' @param par1
 #' use alternative parameterization (default: false).
 #' @param residual
-#' compute residuals (default: false).
+#' compute residuals, requires > 1000 iterations (default: false).
 #' @param WL
 #' define the time-discrimination parameter as measurement error variance parameter (default: false).
 #' @param td
@@ -30,6 +31,14 @@
 #' an optional vector of pre-defined item-discrimination parameters.
 #' @param beta
 #' an optional vector of pre-defined item-difficulty parameters.
+#' @param XPA
+#' an optional matrix of predictors for the person ability parameters.
+#' @param XPT
+#' an optional matrix of predictors for the person speed parameters.
+#' @param XIA
+#' an optional matrix of predictors for the item-difficulty parameters.
+#' @param XIT
+#' an optional matrix of predictors for the item-discrimination parameters.
 #' 
 #' @return 
 #' an object of class LNIRT.
@@ -40,20 +49,25 @@
 #' summary(LNIRT(RT = RT1, Y = Y, data = data, XG = 500, WL = FALSE))
 #'  
 #' @export
-LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, WL = FALSE, td = FALSE, alpha, beta) {
+LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, WL = FALSE, td = FALSE, alpha, beta, XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL) {
 
     ## ident = 1: Identification : fix mean item difficulty(intensity) and product item (time) discrimination responses and response times ident =
     ## 2: Identification : fix mean ability and speed and product item discrimination responses and response times ident <- 1 (default)
     ident <- 2  #(to investigate person fit using latent scores)
-    
+
     if (!missing(data)) {
       # Try to find RT and Y in the data set first
       tryCatch(RT <- eval(substitute(RT), data), error=function(e) NULL)
       tryCatch(Y <- eval(substitute(Y), data), error=function(e) NULL)
+      
+      # Try to find predictors in the data set first
+      tryCatch(XPA <- eval(substitute(XPA), data), error=function(e) NULL)
+      tryCatch(XPT <- eval(substitute(XPT), data), error=function(e) NULL)
+      tryCatch(XIA <- eval(substitute(XIA), data), error=function(e) NULL)
+      tryCatch(XIT <- eval(substitute(XIT), data), error=function(e) NULL)
     } else {
       data = NULL
     }
-    
     
     PNO <- guess # TRUE: guessing included
     #WL <- 1  #time discrimination = 1/sqrt(error variance)
@@ -73,10 +87,58 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
     
     N <- nrow(Y)
     K <- ncol(Y)
+
+
+    if (is.null(XPA) && is.null(XPT)){
+		nopredictorp <- TRUE
+		MmuP <- matrix(0,nrow=XG,ncol=2)
+	} else {
+		nopredictorp <- FALSE
+		#if (!is.null(XPA)) {#location XPA set to zero (BUT not Dummy coded variables)
+		##	XPA <- matrix(XPA,ncol=ncol(XPA),nrow=N) - matrix(apply(XPA,2,mean),ncol=ncol(XPA),nrow=N,byrow=T)
+		#}
+		#if (!is.null(XPT)) {#location XPT set to zero (BUT not Dummy coded variables)
+		##	XPT <- matrix(XPT,ncol=ncol(XPT),nrow=N) - matrix(apply(XPT,2,mean),ncol=ncol(XPT),nrow=N,byrow=T)
+		#}
+		if (is.null(XPA)) {
+			XPA <- matrix(1,ncol=1,nrow=N) #default intercept for ability
+		}
+		if (is.null(XPT)) {
+			XPT <- matrix(1,ncol=1,nrow=N) #default intercept for speed
+		}
+		MmuP <- matrix(0,nrow=XG,ncol=c(ncol(XPA)+ncol(XPT)))
+	}	
+
+    if(is.null(XIA) & is.null(XIT)){
+		nopredictori <- TRUE
+		MmuI <- matrix(0,nrow=XG,ncol=4)
+	} else {
+		nopredictori <- FALSE
+		if (!is.null(XIA)) {#location XIA set to zero (BUT not Dummy coded variables)
+		##	XIA <- matrix(XIA,ncol=ncol(XIA),nrow=K) - matrix(apply(XIA,2,mean),ncol=ncol(XIA),nrow=K,byrow=T)
+			if(ident == 2){
+				XIA <- cbind(rep(1,K),XIA)
+			}
+		}
+		if (!is.null(XIT)) {#location XIT set to zero (BUT not Dummy coded variables)
+		##	XIT <- matrix(XIT,ncol=ncol(XIT),nrow=K) - matrix(apply(XIT,2,mean),ncol=ncol(XIT),nrow=K,byrow=T)
+			if(ident == 2){
+				XIT <- cbind(rep(1,K),XIT)
+			}
+		}
+		if (is.null(XIA)) {
+			XIA <- matrix(1,ncol=1,nrow=K) #default intercept for ability
+		}
+		if (is.null(XIT)) {
+			XIT <- matrix(1,ncol=1,nrow=K) #default intercept for speed
+		}
+		MmuI <- matrix(0,nrow=XG,ncol=2 + c(ncol(XIA)+ncol(XIT)))
+	}
+
     
     ## population theta (ability - speed)
     theta <- matrix(rnorm(N * 2), ncol = 2) # 1: ability, 2: speed
-    muP <- matrix(0, N, 2) # Mean estimates for person parameters 
+    muP <- matrix(0, nrow=N, ncol=2) # Mean estimates for person parameters 
     SigmaP <- diag(2) # Person covariance matrix
     muP0 <- matrix(0, 1, 2)
     SigmaP0 <- diag(2)
@@ -97,8 +159,6 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
     MT <- MT2 <- array(0, dim = c(N, 2))
     MAB <- array(0, dim = c(XG, K, 4))
     Mguess <- matrix(0, XG, K)
-    MmuP <- array(0, dim = c(XG, 2))
-    MmuI <- array(0, dim = c(XG, 4))
     MSP <- array(0, dim = c(XG, 2, 2))
     MSI <- array(0, dim = c(XG, 4, 4))
     Msigma2 <- matrix(0, ncol = K, nrow = XG)
@@ -295,6 +355,7 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         }
         
         MAB[ii, 1:K, 1:4] <- ab
+
         
         # WL: Measurement error variance for time discrimination
         # Else: Measurement error variance for time term 
@@ -304,13 +365,20 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         } else {
             Msigma2[ii, 1:K] <- sigma2
         }
+
+	 if(nopredictorp){ 	
+	        # Population mean estimate for person ability and speed
+	        X <- matrix(1, N, 1)
+	        muP <- SampleB(Y=theta, X=X, Sigma=SigmaP, B0=muP0, V0=SigmaP0)
+	        MmuP[ii, ] <- muP$B
+	        muP <- muP$pred
+	  } else{
+	        muPP <- SampleBX_LNIRT(Y=theta,XPA=XPA,XPT=XPT)
+	        MmuP[ii, ] <- muPP$B
+	        muP <- muPP$pred
+	  }
         
-        # Population mean estimate for person ability and speed
-        X <- matrix(1, N, 1)
-        muP <- SampleB(theta, X, SigmaP, muP0, SigmaP0)
-        MmuP[ii, ] <- muP$B
-        muP <- muP$pred
-        
+
         # Covariance matrix person parameters
         SS <- crossprod(theta - muP) + SigmaP0
         SigmaP <- rwishart(2 + N, chol2inv(chol(SS)))$IW
@@ -322,7 +390,8 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         } else {
             ab1 <- ab
         }
-        
+
+	if(nopredictori){ 	
         # Population mean estimates for item parameters 
         # 1: item discrimination 2: item difficulty 3: time discrimination 4: time intensity
         muI2 <- SampleB(Y = ab1, X = X, Sigma = SigmaI, B0 = muI0, V0 = SigmaI0)
@@ -333,6 +402,31 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
             MmuI[ii, c(1, 3)] <- muI2$B[c(1, 3)]
             muI[, c(1, 3)] <- muI2$pred[, c(1, 3)]
         }
+	} else {
+		## Item Predictors
+
+#### XIA and XIT should include intercept when ident=2
+		set2 <- c(2,4)	
+		ab2 <- ab1[,set2]
+		dum <- SampleBX_LNIRT(Y=ab2,XPA=XIA,XPT=XIT)
+		MmuI[ii,2:(ncol(XIA)+1)] <- dum$B[1:ncol(XIA)]
+		MmuI[ii,(3+ncol(XIA)):(ncol(XIA)+2+ncol(XIT))] <- dum$B[(ncol(XIA)+1):(ncol(XIA)+ncol(XIT))]
+		if(ident == 1){
+			MmuI[ii, c(2,3+ncol(XIA))] <- c(0,0)
+		}
+		muI[,set2] <- dum$pred 
+
+		#mean discrimination and time discrimination	
+		set2 <- c(1,3)
+	 	SigmaI1 <- SigmaI[set2,set2]
+		muI01 <- muI0[set2]
+		SigmaI01 <- SigmaI0[set2,set2]
+		ab2 <- ab1[,set2]		
+	      muI2 <- SampleB(Y = ab2, X = X, Sigma = SigmaI1, B0 = muI01, V0 = SigmaI01)
+            MmuI[ii, c(1,2+ncol(XIA))] <- muI2$B
+            muI[, c(1,3)] <- muI2$pred
+	}
+
         
         # Covariance matrix item parameters
         muI1 <- matrix(muI, ncol = 4, nrow = K, byrow = FALSE)
@@ -446,14 +540,15 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         if (residual) {
             out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
                 lZP = lZP, lZPT = lZPT, lZPA = lZPA, lZI = lZI, EAPresid = EAPresid, EAPresidA = EAPresidA, EAPKS = EAPKS, EAPKSA = EAPKSA, PFl = PFl, 
-                PFlp = PFlp, IFl = IFl, IFlp = IFlp, EAPl0 = EAPl0, RT = RT, Y = Y, EAPCP1 = EAPCP1, EAPCP2 = EAPCP2, EAPCP3 = EAPCP3, WL = WL, td = td, guess = guess, par1 = par1, data = data)
+                PFlp = PFlp, IFl = IFl, IFlp = IFlp, EAPl0 = EAPl0, RT = RT, Y = Y, EAPCP1 = EAPCP1, EAPCP2 = EAPCP2, EAPCP3 = EAPCP3, WL = WL, td = td, guess = guess, par1 = par1, data = data, 
+                XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
         } else {
             out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
-                RT = RT, Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data)
+                RT = RT, Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data, XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
         }
     } else {
         out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, RT = RT, 
-            Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data)
+            Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data, XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
     }
     
     class(out) <- "LNIRT"

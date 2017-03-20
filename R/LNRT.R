@@ -35,7 +35,9 @@ LNRT <- function(RT, data, XG = 1000, Discrimination = TRUE, WL = FALSE) {
   N <- nrow(RT)
   K <- ncol(RT)
   
-  #WL <- 1  #time discrimination = 1/sqrt(error variance)
+  if(WL) { 
+    Discrimination <- TRUE   #WL <- 1  #time discrimination = 1/sqrt(error variance)
+  }
   
   ## population theta (ability - speed)
   theta <- matrix(rnorm(N))
@@ -110,16 +112,18 @@ LNRT <- function(RT, data, XG = 1000, Discrimination = TRUE, WL = FALSE) {
           ab[, 1] <- 1
           ab1 <- cbind(1/sqrt(sigma2), ab[, 2])
           dum <- Conditional(kk = 2, Mu = muI, Sigma = SigmaI, Z = ab1)
-          ab[, 2] <- DrawLambda_LNRT(RT = RT, zeta = theta, sigma2 = sigma2, mu = dum$CMU, sigma = dum$CVAR)
+          ab[, 2] <- DrawLambda_LNRT(RT = RT, zeta = theta, sigma2 = sigma2, mu = dum$CMU, sigma = dum$CVAR[1,1])
       } else {
-          dum <- DrawLambdaPhi_LNRT(RT, theta, sigma2, muI, SigmaI, ingroup)
           if (Discrimination) {
+              dum <- DrawLambdaPhi_LNRT(RT, theta, sigma2, muI, SigmaI, ingroup)
               ab[, 1] <- dum$phi
               ab[, 1] <- ab[, 1]/(prod(ab[, 1])^(1/K))
+              ab[, 2] <- dum$lambda
           } else {
               ab[, 1] <- rep(1, K)
+              ab[, 2] <- DrawLambda_LNRT(RT = RT, zeta = theta, sigma2 = sigma2, mu = muI[1,2], sigma = SigmaI[2,2])
           }
-          ab[, 2] <- dum$lambda
+          
       }
       
       MAB[ii, 1:K, 1:2] <- ab
@@ -145,15 +149,46 @@ LNRT <- function(RT, data, XG = 1000, Discrimination = TRUE, WL = FALSE) {
       } else {
           ab1 <- ab
       }
-      muI2 <- SampleB(ab1, X, SigmaI, muI0, SigmaI0)
-      MmuI[ii, 1] <- muI2$B[1]
-      MmuI[ii, 2] <- muI2$B[2]
-      muI[, 1] <- muI2$pred[, 1]
-      muI[, 2] <- muI2$pred[, 2]
+      # muI2 <- SampleB(ab1, X, SigmaI, muI0, SigmaI0)
+      # MmuI[ii, 1] <- muI2$B[1]
+      # MmuI[ii, 2] <- muI2$B[2]
+      # muI[, 1] <- muI2$pred[, 1]
+      # muI[, 2] <- muI2$pred[, 2]
+      # 
+      # SS <- crossprod(ab1 - muI) + SigmaI0
+      # SigmaI <- rwishart(2 + K, chol2inv(chol(SS)))$IW
+      # MSI[ii, , ] <- SigmaI
       
-      SS <- crossprod(ab1 - muI) + SigmaI0
-      SigmaI <- rwishart(2 + K, chol2inv(chol(SS)))$IW
-      MSI[ii, , ] <- SigmaI
+      
+      ## Adjust sampling mean item parameters 
+      if((!WL) && (!Discrimination)){
+        meanmuI2  <- (sum(ab[,2])/SigmaI[2,2]+muI0[2]/SigmaI0[2,2])/(1/SigmaI0[2,2]+1/(SigmaI[2,2]))		
+        sdmuI2  <- sqrt(1/(1/SigmaI0[2,2]+K/(SigmaI[2,2])))	
+        muI2	<- rnorm(1,mean=meanmuI2,sd=sdmuI2)
+        MmuI[ii,1] <- 1
+        MmuI[ii,2] <- muI2
+        muI[,1] <- 1
+        muI[,2] <- muI2
+      }else{
+        muI2 <- SampleB(ab1,X,SigmaI,muI0,SigmaI0)
+        MmuI[ii,1] <- muI2$B[1]
+        MmuI[ii,2] <- muI2$B[2]
+        muI[,1] <- muI2$pred[,1]
+        muI[,2] <- muI2$pred[,2]
+      }
+      
+      ## Adjust sampling covariance matrix item parameters 
+      if(!Discrimination){
+        SS <- sum((ab1[,2]-muI[,2])**2) + SigmaI0[2,2]
+        SigmaI[2,2] <- SS/rgamma(1,(K+1)/2,1/2) #change sampling
+        SigmaI[1,1] <- 1
+        MSI[ii,,] <- SigmaI
+      }else{		
+        SS <- crossprod(ab1 - muI) + SigmaI0
+        SigmaI <- rwishart(2 + K, chol2inv(chol(SS)))$IW
+        MSI[ii,,] <- SigmaI
+      }
+      
       
       if (ii > 1000) {
           EAPphi <- (ab[, 1] + (iis - 1) * EAPphi)/iis

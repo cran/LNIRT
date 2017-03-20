@@ -5,14 +5,16 @@
 \title{Log-normal response time IRT modelling}
 \usage{
 LNIRT(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE,
-  residual = FALSE, WL = FALSE, td = FALSE, alpha, beta)
+  residual = FALSE, WL = FALSE, td = FALSE, alpha, beta, XPA = NULL,
+  XPT = NULL, XIA = NULL, XIT = NULL)
 }
 \arguments{
 \item{RT}{a Person-x-Item matrix of log-response times (time spent on solving an item).}
 
 \item{Y}{a Person-x-Item matrix of responses.}
 
-\item{data}{either a list or a simLNIRT object containing the response time and response matrices. 
+\item{data}{either a list or a simLNIRT object containing the response time and response matrices 
+and optionally the predictors for the item and person parameters. 
 If a simLNIRT object is provided, in the summary the simulated item and time parameters are shown alongside of the estimates.
 If the required variables cannot be found in the list, or if no data object is given, then the variables are taken
 from the environment from which LNIRT is called.}
@@ -23,7 +25,7 @@ from the environment from which LNIRT is called.}
 
 \item{par1}{use alternative parameterization (default: false).}
 
-\item{residual}{compute residuals (default: false).}
+\item{residual}{compute residuals, requires > 1000 iterations (default: false).}
 
 \item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
 
@@ -32,6 +34,14 @@ from the environment from which LNIRT is called.}
 \item{alpha}{an optional vector of pre-defined item-discrimination parameters.}
 
 \item{beta}{an optional vector of pre-defined item-difficulty parameters.}
+
+\item{XPA}{an optional matrix of predictors for the person ability parameters.}
+
+\item{XPT}{an optional matrix of predictors for the person speed parameters.}
+
+\item{XIA}{an optional matrix of predictors for the item-difficulty parameters.}
+
+\item{XIT}{an optional matrix of predictors for the item-discrimination parameters.}
 }
 \value{
 an object of class LNIRT.
@@ -45,4 +55,3 @@ data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
 summary(LNIRT(RT = RT1, Y = Y, data = data, XG = 500, WL = FALSE))
  
 }
-

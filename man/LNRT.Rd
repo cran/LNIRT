@@ -32,4 +32,3 @@ data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
 summary(LNRT(RT = RT, data = data, XG = 500, Discrimination = TRUE, WL = FALSE))
  
 }
-

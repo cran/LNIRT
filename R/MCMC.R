@@ -147,9 +147,9 @@ DrawLambda_LNRT <- function(RT, zeta, sigma2, mu, sigma) {
     zetaT <- matrix(zeta, ncol = K, nrow = N, byrow = F)
     RTs <- matrix(RT + zetaT, ncol = K, nrow = N)
     XX <- matrix(1, ncol = K, nrow = N)
-    pvar <- diag(t(XX) %*% XX)/sigma2 + 1/sigma[1, 1]
+    pvar <- diag(t(XX) %*% XX)/sigma2 + 1/sigma
     betahat <- diag(t(XX) %*% RT)/sigma2
-    mu <- (betahat + mu/sigma[1, 1])/pvar
+    mu <- (betahat + mu/sigma)/pvar
     beta <- rnorm(K, mean = mu, sd = sqrt(1/pvar))
     
     return(beta)
@@ -285,6 +285,30 @@ SampleS2_LNIRT <- function(RT, zeta, lambda, phi) {
     sigma2 <- (apply(Z * Z, 2, sum) + ss0)/rchisq(K, N)
     return(sigma2)
 }
+
+SampleBX_LNIRT <- function(Y,XPA,XPT){
+
+	N <- nrow(Y)
+	ka <- ncol(XPA)
+	kt <- ncol(XPT)
+	V0 <- diag(ka+kt) #inverse prior covariance matrix
+	B0 <- matrix(0,ncol=1,nrow=ka+kt)
+	V0B0 <- matrix(V0%*%matrix(B0, ncol = 1),ncol=1)
+
+  Bvara <- solve(crossprod(XPA) + V0[1:ka,1:ka])
+  Bvart <- solve(crossprod(XPT) + V0[(ka+1):(ka+kt),(ka+1):(ka+kt)])
+  Btildea <- Bvara %*% (crossprod((XPA),Y[,1]) + V0B0[1:ka])
+  Btildet <- Bvart %*% (crossprod((XPT),Y[,2]) + V0B0[(ka+1):(ka+kt)])
+  Ba <- matrix(MASS::mvrnorm(1,mu=Btildea,Sigma=Bvara), nrow = 1)
+  Bt <- matrix(MASS::mvrnorm(1,mu=Btildet,Sigma=Bvart), nrow = 1)
+	B <- matrix(cbind(Ba,Bt),ncol=1)
+	pred <- matrix(c(XPA%*%matrix(Ba,nrow=ka,ncol=1),XPT%*%matrix(Bt,nrow=kt,ncol=1)),ncol=2,nrow=N)
+
+	return(list(B=B,pred=pred))
+
+}
+
+
 
 
 

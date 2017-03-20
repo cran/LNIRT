@@ -148,62 +148,373 @@ print.summary.LNIRT <- function(x, ...)
     }
   }
   
-  if (round(x$pdiscr2[2], 3) == 0 && round(x$pdiscr2[4], 3) == 0 && (!x$WL)) {
-    cat("\n\n\t", "Mean and Covariance matrix Items (mu_a,mu_phi)", "\n")
-    cat("\n\t", "--- Population Mean Item ---", "\n")
-    cat("\t", "mu_a", "\t", "SD", "\t", "mu_phi", " ", "SD", "\n")
-    for (jj in c(1, 3)) {
-      cat("\t")
-      printF(x$pdiscr2[jj], w = 6, d = 3)
-      cat("\t")
-      printF(x$sepdiscr2[jj], w = 6, d = 3)
+  if(x$nopredictori){
+    if(round(x$pdiscr2[2],3)==0 && round(x$pdiscr2[4],3)==0 && (!x$WL)){
+      cat("\n\n\t", "Mean and Covariance matrix Items (mu_a,mu_phi)", "\n")
+      cat("\n\t", "--- Population Mean Item ---", "\n")
+      cat("\t","mu_a","\t", "SD","\t","mu_phi"," ","SD","\n")
+      for(jj in c(1,3)){
+        cat("\t")
+        printF(x$pdiscr2[jj], w=6,d=3)
+        cat("\t")
+        printF(x$sepdiscr2[jj], w=6,d=3)
+      }
+    }else{
+      cat("\n\n\t", "Mean and Covariance matrix Items (mu_a,mu_b,mu_phi,mu_lambda)", "\n")
+      cat("\n\t", "--- Population Mean Item ---","\n")
+      cat("\t","mu_a","\t", "SD","\t","mu_b","\t","SD","\t","mu_phi","", "SD","\t","mu_lam","","SD","\n\t")
+      for(jj in c(1,2,3,4)){
+        printF(x$pdiscr2[jj], w=6,d=3)
+        cat("\t")
+        printF(x$sepdiscr2[jj], w=6,d=3)
+        cat("\t")
+      }    
     }
-  } else {
-    cat("\n\n\t", "Mean and Covariance matrix Items (mu_a,mu_b,mu_phi,mu_lambda)", "\n")
-    cat("\n\t", "--- Population Mean Item ---", "\n")
-    cat("\t", "mu_a", "\t", "SD", "\t", "mu_b", "\t", "SD", "\t", "mu_phi", "\t", "SD", "\t", "mu_lambda", "\t", "SD", "\n\t")
-    for (jj in c(1, 2, 3, 4)) {
-      printF(x$pdiscr2[jj], w = 6, d = 3)
-      cat("\t")
-      printF(x$sepdiscr2[jj], w = 6, d = 3)
-      cat("\t")
+    if(x$WL){
+      cat("\n\n\t", "--- Covariance matrix Items (a,b,error variance,lambda)---", "\n")
+      cat("\t\t","SigmaI","\t\t", "SD SigmaI","\t\t\t","SigmaI (Correlation)","\n")
+    }else{
+      cat("\n\n\t", "--- Covariance matrix Items (a,b,phi,lambda)---", "\n")
+      cat("\t\t","SigmaI","\t\t", "SD SigmaI","\t\t\t","SigmaI (Correlation)","\n")
     }
-  }
-  if (x$WL) {
-    cat("\n\n\t", "--- Covariance matrix Items (a,b,error variance,lambda)---", "\n")
-    cat("\t\t", "SigmaI", "\t\t", "SD SigmaI", "\t\t\t", "SigmaI (Correlation)", "\n")
-  } else {
-    cat("\n\n\t", "--- Covariance matrix Items (a,b,phi,lambda)---", "\n")
-    cat("\t\t", "SigmaI", "\t\t", "SD SigmaI", "\t\t\t", "SigmaI (Correlation)", "\n")
-  }
-  for (ii in 1:4) {
-    cat("\t")
-    printF(x$pSdiscr2[ii, ], w = 6, d = 3)
-    cat("\t")
-    if (max(x$sepSdiscr2) < 100) {
-      printF(x$sepSdiscr2[ii, ], w = 6, d = 3)
-    } else {
-      printF(x$sepSdiscr2[ii, ], w = 8, d = 3)
+    for(ii in 1:4){
+      cat("\t") 
+      printF(x$pSdiscr2[ii,], w=6,d=3)
+      cat("\t")
+      if(max(x$sepSdiscr2)<1e02){
+        printF(x$sepSdiscr2[ii,], w=6,d=3)
+      }else{
+        printF(x$sepSdiscr2[ii,], w=8,d=3)
+      }
+      cat("\t") 
+      printF(x$SigmaIcor[ii,], w=6,d=3)
+      cat("\t\n") 
+    }  
+  }else{
+    if(round(x$pdiscr2[2],3)==0 && round(x$pdiscr2[x$kia+3],3)==0 && (!x$WL)){
+      cat("\n\n\t", "Item Effects and Covariance matrix Items ", "\n")
+      cat("\n\t", "--- Population Mean Item ---", "\n")
+      cat("\t\t\t","EAP","\t","SD","\n")
+      cat("\t mu_a","\t\t") 
+      printF(x$pdiscr2[1], w=6,d=3)
+      cat("\t")	
+      printF(x$sepdiscr2[1], w=6,d=3)
+      cat("\n\t","mu_phi","\t")
+      printF(x$pdiscr2[x$kia+2], w=6,d=3)
+      cat("\t")
+      printF(x$sepdiscr2[x$kia+2], w=6,d=3)
+      
+      if(x$simv){
+        if(x$predictoria) {
+          cat("\n\t\t","Item Difficulty Predictor Effects","\n")
+          for(ii in 2:(x$kia+1)){
+            if(ii == 2){
+              cat("\t\t\t","EAP", "\t", "SD","\t","Sim","\n")
+            }
+            if(ii == 2) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",ii-2,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t")
+            if(ii > 2) {
+              printF(x$data$Bia[ii-2], w=6,d=3)
+              cat("\t\n")				
+            }else{
+              cat("\n")
+            }	
+          }	  
+        }
+        if(x$predictorit) {
+          cat("\t\t","Time Intensity Predictor Effects","\n")
+          sst <- 0	
+          for(ii in (x$kia+3):(2+x$kit+x$kia)){
+            sst<- sst+1	
+            if(ii == (x$kia+3)) {
+              cat("\t\t\t","EAP", "\t", "SD","\t","Sim","\n")
+            }
+            if(ii == (x$kia+3)) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",(x$kia-2)+sst,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t")
+            if(ii > (x$kia+3)) {
+              printF(x$data$Bit[sst-1], w=6,d=3)
+              cat("\t\n")				
+            }else{
+              cat("\n")
+            }				
+          }
+        }
+      }else{
+        if(x$predictoria) {
+          cat("\n\t\t","Item Difficulty Predictor Effects","\n")
+          for(ii in 2:(x$kia+1)){
+            if(ii == 2){
+              cat("\t\t\t","EAP", "\t", "SD","\n")
+            }
+            if(ii == 2) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",ii-2,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t\n") 
+          }
+        }
+        if(x$predictorit) {
+          cat("\t\t","Time Intensity Predictor Effects","\n")
+          sst <- 0	
+          for(ii in (x$kia+3):(2+x$kit+x$kia)){
+            sst<- sst+1	
+            if(ii == (x$kia+3)) {
+              cat("\t\t\t","EAP", "\t", "SD","\n")
+            }
+            if(ii == (x$kia+3)) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",(x$kia-2)+sst,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t\n") 
+          }
+        }
+      }	
+    }else{
+      cat("\n\n\t", "Item Effects and Covariance matrix Items ", "\n")
+      cat("\n\t", "--- Population Mean Item ---", "\n")
+      cat("\t\t\t","EAP","\t","SD","\n")
+      cat("\t mu_a","\t\t") 
+      printF(x$pdiscr2[1], w=6,d=3)
+      cat("\t")	
+      printF(x$sepdiscr2[1], w=6,d=3)
+      cat("\n\t","mu_phi","\t")
+      printF(x$pdiscr2[x$kia+2], w=6,d=3)
+      cat("\t")
+      printF(x$sepdiscr2[x$kia+2], w=6,d=3)
+      if(x$simv){
+        if(x$predictoria) {
+          cat("\n\t\t","Item Difficulty Predictor Effects","\n")
+          for(ii in 2:(x$kia+1)){
+            if(ii == 2){
+              cat("\t\t\t","EAP", "\t", "SD","\t","Sim","\n")
+            }
+            if(ii == 2) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",ii-2,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t")
+            if(ii > 2) {
+              printF(x$data$Bia[ii-2], w=6,d=3)
+              cat("\t\n")				
+            }else{
+              cat("\n")
+            }
+          }
+        }
+        if(x$predictorit) {
+          sst <- 0	
+          cat("\t\t","Time Intensity Predictor Effects","\n")
+          for(ii in (x$kia+3):(2+x$kit+x$kia)){
+            sst <- sst+1
+            if(ii == (x$kia+3)) {
+              cat("\t\t\t","EAP", "\t", "SD","\t","Sim","\n")
+            }
+            if(ii == (x$kia+3)) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",(x$kia-2)+sst,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t")
+            if(ii > (x$kia+3)) {
+              printF(x$data$Bit[sst-1], w=6,d=3)
+              cat("\t\n")				
+            }else{
+              cat("\n")
+            } 
+          }
+        }
+      }else{
+        if(x$predictoria) {
+          cat("\n\t\t","Item Difficulty Predictor Effects","\n")
+          for(ii in 2:(x$kia+1)){
+            if(ii == 2){
+              cat("\t\t\t","EAP", "\t", "SD","\n")
+            }
+            if(ii == 2) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",ii-2,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t\n") 
+          }
+        }
+        if(x$predictorit) {
+          sst <- 0	
+          cat("\t\t","Time Intensity Predictor Effects","\n")
+          for(ii in (x$kia+3):(2+x$kit+x$kia)){
+            sst <- sst+1
+            if(ii == (x$kia+3)) {
+              cat("\t\t\t","EAP", "\t", "SD","\n")
+            }
+            if(ii == (x$kia+3)) {
+              cat("\t Intercept","\t") 
+            }else{	
+              cat("\t X",(x$kia-2)+sst,"\t\t") 
+            }
+            printF(x$pdiscr2[ii], w=6,d=3)
+            cat("\t") 
+            printF(x$sepdiscr2[ii], w=6,d=3)
+            cat("\t\n") 
+          }
+        }
+      }	
     }
-    cat("\t")
-    printF(x$SigmaIcor[ii, ], w = 6, d = 3)
-    cat("\t\n")
+    if(x$WL){
+      cat("\n\n\t", "--- Covariance matrix Items (a,b,error variance,lambda)---", "\n")
+      cat("\t","SigmaI","\t\t\t", "SD SigmaI","\t\t\t","SigmaI (Correlation)","\n")
+    }else{
+      cat("\n\n\t", "--- Covariance matrix Items (a,b,phi,lambda)---", "\n")
+      cat("\t","SigmaI","\t\t\t", "SD SigmaI","\t\t\t","SigmaI (Correlation)","\n")
+    }
+    for(ii in 1:4){
+      cat("\t") 
+      printF(x$pSdiscr2[ii,], w=6,d=3)
+      cat("\t")
+      if(max(x$sepSdiscr2)<1e02){
+        printF(x$sepSdiscr2[ii,], w=6,d=3)
+      }else{
+        printF(x$sepSdiscr2[ii,], w=8,d=3)
+      }
+      cat("\t") 
+      printF(x$SigmaIcor[ii,], w=6,d=3)
+      cat("\t\n") 
+    }
   }
   
-  cat("\n\n\t", "Mean and Covariance matrix Persons (ability,speed)", "\n")
-  cat("\n\t", "--- Population Mean Person (Ability - Speed)---", "\n")
-  cat("\t\t", "muP", "\t\t", "SD", "\n")
-  for (ii in 1:2) {
-    if (ii == 1) {
-      cat("\t Ability ")
+  
+  if(x$nopredictorp){
+    cat("\n\n\t", "Mean and Covariance matrix Persons (ability,speed)", "\n")
+    cat("\n\t", "--- Population Mean Person (Ability - Speed)---", "\n")
+    cat("\t\t\t","muP", "\t", "SD","\n")
+    for(ii in 1:2){
+      if(ii == 1) {
+        cat("\t Ability \t") 
+      }else{	
+        cat("\t Speed \t\t") 
+      }
+      printF(x$ppers2[ii], w=6,d=3)
+      cat("\t") 
+      printF(x$seppers2[ii], w=6,d=3)
+      cat("\t\n") 
+    }  
+  } else {
+    if(x$simv){
+      cat("\n\n\t", "Person Effects and Covariance matrix Persons (ability,speed)", "\n")
+      cat("\n\t", "--- Person Effects (Ability - Speed)---", "\n")
+      
+      if(x$predictora) {
+        cat("\t\t","Ability Predictor Effects","\n")
+        for(ii in 1:x$ka){
+          if(ii == 1) {
+            cat("\t\t","EAP", "\t", "SD","\t", "Sim","\n")
+          }
+          cat("\t X",ii,"\t") 
+  
+          printF(x$ppers2[ii], w=6,d=3)
+          cat("\t") 
+          printF(x$seppers2[ii], w=6,d=3)
+          cat("\t") 
+          if(!is.null(x$data$Ba[ii])) {
+            printF(x$data$Ba[ii], w=6,d=3)
+            cat("\t\n") 
+          }
+          else {
+            cat("\n") 
+          } 
+        } 
+      }
+      
+      if(x$predictort) {
+        cat("\t\t","Speed Predictor Effects","\n")
+        for(ii in (x$ka+1):(x$kt+x$ka)){
+          if(ii == (x$ka+1)) {
+            cat("\t\t","EAP", "\t", "SD","\t", "Sim","\n")
+          }
+            
+          cat("\t X",ii,"\t") 
+          
+          
+          #cat("\t X",ii,"\t") 
+          printF(x$ppers2[ii], w=6,d=3)
+          cat("\t") 
+          printF(x$seppers2[ii], w=6,d=3)
+          cat("\t")
+          if(!is.null(x$data$Bt[ii-x$ka])) {
+            printF(x$data$Bt[ii-x$ka], w=6,d=3)
+            cat("\t\n") 
+          }
+          else {
+            cat("\n") 
+          }
+          
+        }
+      }
     } else {
-      cat("\t Speed \t")
+      cat("\n\n\t", "Person Effects and Covariance matrix Persons (ability,speed)", "\n")
+      cat("\n\t", "--- Person Effects (Ability - Speed)---", "\n")
+      
+      if(x$predictora) {
+        cat("\t\t","Ability Predictor Effects","\n")
+        for(ii in 1:x$ka){
+          if(ii == 1) {
+            cat("\t\t","EAP", "\t", "SD","\n")
+          }
+          cat("\t X",ii,"\t") 
+          printF(x$ppers2[ii], w=6,d=3)
+          cat("\t") 
+          printF(x$seppers2[ii], w=6,d=3)
+          cat("\t\n") 
+        }  
+      }
+      
+      if(x$predictort) {
+        cat("\t\t","Speed Predictor Effects","\n")
+        for(ii in (x$ka+1):(x$kt+x$ka)){
+          if(ii == (x$ka+1)) {
+            cat("\t\t","EAP", "\t", "SD","\n")
+          }
+          cat("\t X",ii,"\t") 
+          printF(x$ppers2[ii], w=6,d=3)
+          cat("\t") 
+          printF(x$seppers2[ii], w=6,d=3)
+          cat("\t\n") 
+        }
+      }
     }
-    printF(x$ppers2[ii], w = 6, d = 3)
-    cat("\t")
-    printF(x$seppers2[ii], w = 6, d = 3)
-    cat("\t\n")
   }
+  
   cat("\n\t", "SigmaP", "\t", "SD SigmaP", "\t", "SigmaP (Correlation)", "\n")
   for (ii in 1:2) {
     cat("\t")
@@ -548,10 +859,10 @@ print.summary.LNRT <- function(x, ...)
   
   cat("\n\n\t", "Mean and Covariance matrix Items (phi,lambda)", "\n")
   cat("\n\t", "--- Population Mean Item ---", "\n")
-  cat("\t", "mu_phi", " ", "SD", "\t", "mu_lambda", " ", "SD", "\n\t")
+  cat("\t", "mu_phi", " ", "SD", "\t", "mu_lam", " ", "SD", "\n\t")
   for (jj in c(1, 2)) {
     printF(x$pdiscr[jj], w = 6, d = 3)
-    cat("\t")
+    cat("\t ")
     printF(x$sepdiscr[jj], w = 6, d = 3)
     cat("\t")
   }
@@ -567,7 +878,7 @@ print.summary.LNRT <- function(x, ...)
   
   cat("\n\n\t", "Mean and Covariance matrix Persons", "\n")
   cat("\n\t", "--- Population Mean Person ---", "\n")
-  cat("\t", "mu_P", "\t", "SD", "\n\t")
+  cat("\t", "mu_P", "\t ", "SD", "\n\t")
   for (jj in c(1)) {
     printF(x$ppers[jj], w = 6, d = 2)
     cat("\t")
@@ -575,7 +886,7 @@ print.summary.LNRT <- function(x, ...)
     cat("\t")
   }
   cat("\n\n\t", "--- Covariance matrix Person ---", "\n")
-  cat("\t", "Sigma_P", "\t", "SD", "\n\t")
+  cat("\t", "Sigma_P", "SD", "\n\t")
   for (jj in c(1)) {
     printF(x$pSpers[jj], w = 6, d = 3)
     cat("\t")

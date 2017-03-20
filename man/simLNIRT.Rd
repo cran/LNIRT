@@ -4,7 +4,7 @@
 \alias{simLNIRT}
 \title{Simulate data for log-normal response time IRT modelling}
 \usage{
-simLNIRT(N, K, rho, td, WL)
+simLNIRT(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit)
 }
 \arguments{
 \item{N}{the number of persons.}
@@ -16,6 +16,14 @@ simLNIRT(N, K, rho, td, WL)
 \item{td}{set time-discrimination to one (default: false).}
 
 \item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
+
+\item{kpa}{the number of predictors for the person ability parameters (optional).}
+
+\item{kpt}{the number of predictors for the person speed parameters (optional).}
+
+\item{kia}{the number of predictors for the item-difficulty parameters (optional).}
+
+\item{kit}{the number of predictors for the item-discrimination parameters (optional).}
 }
 \value{
 an object of class simLNIRT.
@@ -23,4 +31,3 @@ an object of class simLNIRT.
 \description{
 Simulate data for log-normal response time IRT modelling
 }
-

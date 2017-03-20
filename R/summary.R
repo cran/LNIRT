@@ -13,6 +13,49 @@ summary.LNIRT <- function(object, ...)
     gammamodel <- FALSE
   }
   
+  ## predictors speed and ability
+  if(length(object$XPA)> 0){
+    predictora <- TRUE
+    ka <- ncol(object$XPA)
+  } else {
+    predictora <- FALSE
+    ka <- NULL
+  }
+  if(length(object$XPT)> 0){
+    predictort <- TRUE
+    kt <- ncol(object$XPT)
+  } else{
+    predictort <- FALSE
+    kt <- NULL
+  }
+  
+  if(!predictora && !predictort){
+    nopredictorp <- TRUE
+  } else {
+    nopredictorp <- FALSE
+  }
+  
+  ## Item predictors difficulty and time intensity
+  if(length(object$XIA)> 0){
+    predictoria <- TRUE
+    kia <- ncol(object$XIA)
+  } else {
+    predictoria <- FALSE
+    kia <- NULL
+  }
+  if(length(object$XIT)> 0){
+    predictorit <- TRUE
+    kit <- ncol(object$XIT)
+  } else{
+    predictorit <- FALSE
+    kit <- NULL
+  }
+  if(!predictoria && !predictorit){
+    nopredictori <- TRUE
+  } else {
+    nopredictori <- FALSE
+  }
+  
   N <- length(object$Mtheta[, 1])
   K <- ncol(object$MAB[, , 1])
   XG <- length(object$MAB[, 1, 1])
@@ -73,7 +116,9 @@ summary.LNIRT <- function(object, ...)
               RT = object$RT, Y = object$Y, simv = simv, gammamodel = gammamodel, WL = object$WL, td = object$td, guess = object$guess, par1 = object$par1, N = N, K = K, XG = XG, bi = bi, idiscr = idiscr, idiff = idiff, tdiscr = tdiscr, tintens = tintens,
               seidiscr = seidiscr, seidiff = seidiff, setdiscr = setdiscr, setintens = setintens, iguess = iguess, seiguess = seiguess, pdiscr2 = pdiscr2, sepdiscr2 = sepdiscr2, pSdiscr2 = pSdiscr2, sepSdiscr2 = sepSdiscr2,
               SigmaIcor = SigmaIcor, ppers2 = ppers2, seppers2 = seppers2, pSpers2 = pSpers2, sepSpers2 = sepSpers2, SigmaPcor = SigmaPcor, estsigma2 = estsigma2, seestsigma2 = seestsigma2, estnug = estnug, seestnug = seestnug, 
-              data = object$data)
+              data = object$data, 
+              nopredictorp = nopredictorp, nopredictori = nopredictori, predictora = predictora, predictort = predictort,
+              predictoria = predictoria, predictorit = predictorit, ka = ka, kt = kt, kia = kia, kit = kit)
   if ("lZP" %in% names(object)) {
     tmp <- list(lZP = object$lZP, lZPT = object$lZPT, lZPA = object$lZPA, lZI = object$lZI, EAPresid = object$EAPresid, EAPresidA = object$EAPresidA, EAPKS = object$EAPKS, EAPKSA = object$EAPKSA, PFl = object$PFl, 
                 PFlp = object$PFlp, IFl = object$IFl, IFlp = object$IFlp, EAPl0 = object$EAPl0, EAPCP1 = object$EAPCP1, EAPCP2 = object$EAPCP2, EAPCP3 = object$EAPCP3)
