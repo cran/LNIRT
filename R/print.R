@@ -569,7 +569,7 @@ print.summary.LNIRT <- function(x, ...)
     set <- which(x$EAPresid > 0.95)
     if (length(set >= 1)) {
       cat("\n\t", "Percentage Extreme Residuals (.95 Posterior Probability)", "\n")
-      cat("\t", round(100 * length(set)/x$N, 4), "%", "\t\n")
+      cat("\t", round(100 * length(set)/(x$N*x$K), 4), "% (general average across persons and items)", "\t\n")
       
       ## Identify Extremes
       set <- which(x$EAPresid > 0.95)
@@ -648,7 +648,7 @@ print.summary.LNIRT <- function(x, ...)
     set <- which(x$EAPresidA > 0.95)
     if (length(set >= 1)) {
       cat("\n\t", "Percentage Extreme Residuals (.95 Posterior Probability)", "\n")
-      cat("\t", round(100 * length(set)/x$N, 4), "%", "\t\n")
+      cat("\t", round(100 * length(set)/(x$N*x$K), 4), "% (general average across persons and items)", "\t\n")
       
       ## Identify Extremes
       set <- which(x$EAPresidA > 0.95)
@@ -856,7 +856,6 @@ print.summary.LNRT <- function(x, ...)
     
   }
   
-  
   cat("\n\n\t", "Mean and Covariance matrix Items (phi,lambda)", "\n")
   cat("\n\t", "--- Population Mean Item ---", "\n")
   cat("\t", "mu_phi", " ", "SD", "\t", "mu_lam", " ", "SD", "\n\t")
@@ -874,7 +873,50 @@ print.summary.LNRT <- function(x, ...)
     printF(x$sepSdiscr[jj], w = 6, d = 3)
     cat("\t")
   }
-  
+
+  if(x$predictorit){
+    if(x$simv) {
+      cat("\n\n\t","Time Intensity Predictor Effects","\n")
+      for(ii in 2:(x$kit+1)){
+        if(ii == 2){
+          cat("\t\t\t","EAP", "\t", "SD","\t","Sim","\n")
+        }
+        if(ii == 2) {
+          cat("\t Intercept","\t") 
+        }else{	
+          cat("\t X",ii-2,"\t\t") 
+        }
+        printF(x$pdiscr[ii], w=6,d=3)
+        cat("\t") 
+        printF(x$sepdiscr[ii], w=6,d=3)
+        cat("\t")
+        if(ii > 2) {
+          printF(x$data$Bit[ii-2], w=6,d=3)
+          cat("\t\n")				
+        }else{
+          cat("\n")
+        }	
+      }	  
+    }
+    else {
+      cat("\n\n\t","Time Intensity Predictor Effects","\n")
+      for(ii in 2:(x$kit+1)){
+        if(ii == 2){
+          cat("\t\t\t","EAP", "\t", "SD","\n")
+        }
+        if(ii == 2) {
+          cat("\t Intercept","\t") 
+        }else{	
+          cat("\t X",ii-2,"\t\t") 
+        }
+        printF(x$pdiscr[ii], w=6,d=3)
+        cat("\t") 
+        printF(x$sepdiscr[ii], w=6,d=3)
+        cat("\t\n") 
+      }
+    }
+  }	
+
   
   cat("\n\n\t", "Mean and Covariance matrix Persons", "\n")
   cat("\n\t", "--- Population Mean Person ---", "\n")
@@ -885,6 +927,47 @@ print.summary.LNRT <- function(x, ...)
     printF(x$seppers[jj], w = 6, d = 2)
     cat("\t")
   }
+  
+  
+  if(x$predictort){
+    if(x$simv) {
+      cat("\n\n\t","Speed Predictor Effects","\n")
+      for(ii in 1:x$kt){
+        if(ii == 1) {
+          cat("\t\t","EAP", "\t", "SD","\t", "Sim","\n")
+        }
+        cat("\t X",ii,"\t") 
+        
+        printF(x$ppers[ii], w=6,d=3)
+        cat("\t") 
+        printF(x$sepper[ii], w=6,d=3)
+        cat("\t") 
+        if(!is.null(x$data$Bt[ii])) {
+          printF(x$data$Bt[ii], w=6,d=3)
+          cat("\t\n") 
+        }
+        else {
+          cat("\n") 
+        } 
+      } 
+    }
+    else {
+      cat("\n\n\t","Speed Predictor Effects","\n")
+      for(ii in 1:x$kt){
+        if(ii == 1) {
+          cat("\t\t","EAP", "\t", "SD","\n")
+        }
+        cat("\t X",ii,"\t") 
+        printF(x$ppers[ii], w=6,d=3)
+        cat("\t") 
+        printF(x$seppers[ii], w=6,d=3)
+        cat("\t\n") 
+      }  
+    }
+  }
+
+  
+  
   cat("\n\n\t", "--- Covariance matrix Person ---", "\n")
   cat("\t", "Sigma_P", "SD", "\n\t")
   for (jj in c(1)) {
@@ -936,7 +1019,7 @@ print.summary.LNRT <- function(x, ...)
     set <- which(x$EAPresid > 0.95)
     if (length(set >= 1)) {
       cat("\n\t", "Percentage Extreme Residuals (.95 Posterior Probability)", "\n")
-      cat("\t", round(100 * length(set)/x$N, 4), "%", "\t\n")
+      cat("\t", round(100 * length(set)/(x$N*x$K), 4), "% (general average across persons and items)", "\t\n")
       
       ## Identify Extremes
       set <- which(x$EAPresid > 0.95)

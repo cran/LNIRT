@@ -4,7 +4,8 @@
 \alias{LNRT}
 \title{Log-normal response time modelling}
 \usage{
-LNRT(RT, data, XG = 1000, Discrimination = TRUE, WL = FALSE)
+LNRT(RT, data, XG = 1000, residual = FALSE, td = TRUE, WL = FALSE,
+  XPT = NULL, XIT = NULL)
 }
 \arguments{
 \item{RT}{a Person-x-Item matrix of log-response times (time spent on solving an item).}
@@ -16,9 +17,15 @@ from the environment from which LNRT is called.}
 
 \item{XG}{the number of MCMC iterations to perform (default: 1000).}
 
-\item{Discrimination}{estimate the time-discrimination parameter (default: true).}
+\item{residual}{compute residuals, requires > 1000 iterations (default: false).}
+
+\item{td}{estimate the time-discrimination parameter (default: true).}
 
 \item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
+
+\item{XPT}{an optional matrix of predictors for the person speed parameters.}
+
+\item{XIT}{an optional matrix of predictors for the item time intensity parameters.}
 }
 \value{
 an object of class LNRT.
@@ -27,8 +34,16 @@ an object of class LNRT.
 Log-normal response time modelling
 }
 \examples{
+\dontrun{
 # Log-normal response time modelling
 data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
-summary(LNRT(RT = RT, data = data, XG = 500, Discrimination = TRUE, WL = FALSE))
- 
+out <- LNRT(RT = RT, data = data, XG = 1500, residual = TRUE, td = TRUE, WL = FALSE)
+summary(out) # Print results
+out$Post.Means$Time.Intensity # Extract posterior mean estimates
+
+library(coda)
+mcmc.object <- as.mcmc(out$MCMC.Samples$Time.Intensity) # Extract MCMC samples for coda
+summary(mcmc.object)
+plot(mcmc.object)
+}  
 }

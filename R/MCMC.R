@@ -155,7 +155,21 @@ DrawLambda_LNRT <- function(RT, zeta, sigma2, mu, sigma) {
     return(beta)
 }
 
-
+SampleBX_LNRT <- function(Y, XPT){
+  N <- nrow(Y)
+  kt <- ncol(XPT)
+  V0 <- diag(kt) #inverse prior covariance matrix
+  B0 <- matrix(0,ncol=1,nrow=kt)
+  V0B0 <- matrix(V0 %*% matrix(B0, ncol = 1), ncol=1)
+  
+  Bvart <- solve(crossprod(XPT) + V0)
+  Btildet <- Bvart %*% (crossprod((XPT), Y) + V0B0)
+  Bt <- matrix(MASS::mvrnorm(1, mu= Btildet, Sigma = Bvart), nrow = 1)
+  B <- Bt
+  pred <- XPT %*% matrix(Bt, nrow = kt, ncol = 1)
+  
+  return(list(B = B, pred = pred))
+}
 
 ### MCMC functions used in LNIRT ###
 
@@ -286,8 +300,7 @@ SampleS2_LNIRT <- function(RT, zeta, lambda, phi) {
     return(sigma2)
 }
 
-SampleBX_LNIRT <- function(Y,XPA,XPT){
-
+SampleBX_LNIRT <- function(Y, XPA, XPT){
 	N <- nrow(Y)
 	ka <- ncol(XPA)
 	kt <- ncol(XPT)
@@ -305,7 +318,6 @@ SampleBX_LNIRT <- function(Y,XPA,XPT){
 	pred <- matrix(c(XPA%*%matrix(Ba,nrow=ka,ncol=1),XPT%*%matrix(Bt,nrow=kt,ncol=1)),ncol=2,nrow=N)
 
 	return(list(B=B,pred=pred))
-
 }
 
 

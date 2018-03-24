@@ -23,10 +23,10 @@
 #' use alternative parameterization (default: false).
 #' @param residual
 #' compute residuals, requires > 1000 iterations (default: false).
+#' @param td
+#' estimate the time-discrimination parameter(default: true).
 #' @param WL
 #' define the time-discrimination parameter as measurement error variance parameter (default: false).
-#' @param td
-#' set time-discrimination to one (default: false).
 #' @param alpha
 #' an optional vector of pre-defined item-discrimination parameters.
 #' @param beta
@@ -38,19 +38,29 @@
 #' @param XIA
 #' an optional matrix of predictors for the item-difficulty parameters.
 #' @param XIT
-#' an optional matrix of predictors for the item-discrimination parameters.
+#' an optional matrix of predictors for the item time intensity parameters.
 #' 
 #' @return 
-#' an object of class LNIRT.
+#' an object of class LNIRT. 
 #' 
 #' @examples 
+#' \dontrun{
 #' # Log-normal response time IRT modelling
 #' data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
-#' summary(LNIRT(RT = RT1, Y = Y, data = data, XG = 500, WL = FALSE))
-#'  
+#' out <- LNIRT(RT = RT, Y = Y, data = data, XG = 1500, residual = TRUE, WL = FALSE)
+#' summary(out) # Print results
+#' out$Post.Means$Item.Difficulty # Extract posterior mean estimates 
+#' 
+#' library(coda)
+#' mcmc.object <- as.mcmc(out$MCMC.Samples$Item.Difficulty) # Extract MCMC samples for coda
+#' summary(mcmc.object)
+#' plot(mcmc.object)
+#' }  
 #' @export
-LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, WL = FALSE, td = FALSE, alpha, beta, XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL) {
+LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL) {
 
+    
+  
     ## ident = 1: Identification : fix mean item difficulty(intensity) and product item (time) discrimination responses and response times ident =
     ## 2: Identification : fix mean ability and speed and product item discrimination responses and response times ident <- 1 (default)
     ident <- 2  #(to investigate person fit using latent scores)
@@ -91,49 +101,55 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
 
     if (is.null(XPA) && is.null(XPT)){
 		nopredictorp <- TRUE
-		MmuP <- matrix(0,nrow=XG,ncol=2)
-	} else {
-		nopredictorp <- FALSE
-		#if (!is.null(XPA)) {#location XPA set to zero (BUT not Dummy coded variables)
-		##	XPA <- matrix(XPA,ncol=ncol(XPA),nrow=N) - matrix(apply(XPA,2,mean),ncol=ncol(XPA),nrow=N,byrow=T)
-		#}
-		#if (!is.null(XPT)) {#location XPT set to zero (BUT not Dummy coded variables)
-		##	XPT <- matrix(XPT,ncol=ncol(XPT),nrow=N) - matrix(apply(XPT,2,mean),ncol=ncol(XPT),nrow=N,byrow=T)
-		#}
+		XPA <- matrix(1,ncol=1,nrow=N) #default intercept for ability
+		XPT <- matrix(1,ncol=1,nrow=N) #default intercept for speed
+		} 
+    else {
+  		nopredictorp <- FALSE
+  		#if (!is.null(XPA)) {#location XPA set to zero (BUT not Dummy coded variables)
+  		##	XPA <- matrix(XPA,ncol=ncol(XPA),nrow=N) - matrix(apply(XPA,2,mean),ncol=ncol(XPA),nrow=N,byrow=T)
+  		#}
+  		#if (!is.null(XPT)) {#location XPT set to zero (BUT not Dummy coded variables)
+  		##	XPT <- matrix(XPT,ncol=ncol(XPT),nrow=N) - matrix(apply(XPT,2,mean),ncol=ncol(XPT),nrow=N,byrow=T)
+  		#}
 		if (is.null(XPA)) {
 			XPA <- matrix(1,ncol=1,nrow=N) #default intercept for ability
 		}
 		if (is.null(XPT)) {
 			XPT <- matrix(1,ncol=1,nrow=N) #default intercept for speed
 		}
-		MmuP <- matrix(0,nrow=XG,ncol=c(ncol(XPA)+ncol(XPT)))
-	}	
+    }	
+    MmuP <- matrix(0,nrow=XG,ncol=c(ncol(XPA)+ncol(XPT)))
+    
 
     if(is.null(XIA) & is.null(XIT)){
-		nopredictori <- TRUE
-		MmuI <- matrix(0,nrow=XG,ncol=4)
-	} else {
-		nopredictori <- FALSE
-		if (!is.null(XIA)) {#location XIA set to zero (BUT not Dummy coded variables)
-		##	XIA <- matrix(XIA,ncol=ncol(XIA),nrow=K) - matrix(apply(XIA,2,mean),ncol=ncol(XIA),nrow=K,byrow=T)
-			if(ident == 2){
-				XIA <- cbind(rep(1,K),XIA)
-			}
-		}
-		if (!is.null(XIT)) {#location XIT set to zero (BUT not Dummy coded variables)
-		##	XIT <- matrix(XIT,ncol=ncol(XIT),nrow=K) - matrix(apply(XIT,2,mean),ncol=ncol(XIT),nrow=K,byrow=T)
-			if(ident == 2){
-				XIT <- cbind(rep(1,K),XIT)
-			}
-		}
-		if (is.null(XIA)) {
-			XIA <- matrix(1,ncol=1,nrow=K) #default intercept for ability
-		}
-		if (is.null(XIT)) {
-			XIT <- matrix(1,ncol=1,nrow=K) #default intercept for speed
-		}
-		MmuI <- matrix(0,nrow=XG,ncol=2 + c(ncol(XIA)+ncol(XIT)))
-	}
+  		nopredictori <- TRUE
+  		MmuI <- matrix(0,nrow=XG,ncol=4)
+  		XIA <- matrix(NA, nrow = K, ncol = 0)
+  		XIT <- matrix(NA, nrow = K, ncol = 0)
+	  } 
+    else {
+  		nopredictori <- FALSE
+  		if (!is.null(XIA)) {#location XIA set to zero (BUT not Dummy coded variables)
+  		##	XIA <- matrix(XIA,ncol=ncol(XIA),nrow=K) - matrix(apply(XIA,2,mean),ncol=ncol(XIA),nrow=K,byrow=T)
+  			if(ident == 2){
+  				XIA <- cbind(rep(1,K),XIA)
+  			}
+  		}
+  		if (!is.null(XIT)) {#location XIT set to zero (BUT not Dummy coded variables)
+  		##	XIT <- matrix(XIT,ncol=ncol(XIT),nrow=K) - matrix(apply(XIT,2,mean),ncol=ncol(XIT),nrow=K,byrow=T)
+  			if(ident == 2){
+  				XIT <- cbind(rep(1,K),XIT)
+  			}
+  		}
+  		if (is.null(XIA)) {
+  			XIA <- matrix(1,ncol=1,nrow=K) #default intercept for ability
+  		}
+  		if (is.null(XIT)) {
+  			XIT <- matrix(1,ncol=1,nrow=K) #default intercept for speed
+  		}
+  		MmuI <- matrix(0,nrow=XG,ncol=2 + c(ncol(XIA)+ncol(XIT)))
+    }
 
     
     ## population theta (ability - speed)
@@ -219,6 +235,13 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
     EAPCP2 <- matrix(0, ncol = 1, nrow = N)
     EAPCP3 <- matrix(0, ncol = 1, nrow = N)
     
+
+    # Output
+    MCMC.Samples <- list()
+    MCMC.Samples$Person.Ability <- matrix(NA, nrow = XG, ncol = N)
+    MCMC.Samples$Person.Speed <- matrix(NA, nrow = XG, ncol = N)
+    
+    
     ## Start MCMC algorithm
     
     for (ii in 1:XG) { # For each iteration
@@ -273,6 +296,10 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         if (ident == 2) {
             theta[, 2] <- theta[, 2] - mean(theta[, 2])
         }
+        
+        
+        MCMC.Samples$Person.Ability[ii, ] <- theta[, 1]
+        MCMC.Samples$Person.Speed[ii, ] <- theta[, 2]
         
         MT[1:N, 1:2] <- MT[1:N, 1:2] + theta # for theta
         MT2[1:N, 1:2] <- MT2[1:N, 1:2] + theta^2 # for sd(theta) 
@@ -329,7 +356,7 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         }
         
         # Draw time discrimination parameter
-        if ((WL) | (td)) {
+        if ((WL) | (!td)) {
             # no time discrimination, 1/(sqrt(error variance)) = discrimination on MVN prior
             ab[, 3] <- 1
         } else {
@@ -536,18 +563,85 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         }
     }
 
+    
+    kia <- kit <- 0
+    if(ncol(XIA) > 0)
+      kia <- ncol(XIA) - 1
+    if(ncol(XIT) > 0)
+      kit <- ncol(XIT) - 1
+    
+    # Output
+    #MCMC.Samples <- list()
+    #MCMC.Samples$Person.Ability <- matrix(NA, nrow = XG, ncol = N)
+    #MCMC.Samples$Person.Speed <- matrix(NA, nrow = XG, ncol = N)
+    MCMC.Samples$Mu.Person.Ability <- MmuP[,1:ncol(XPA)]
+    MCMC.Samples$Mu.Person.Speed <- MmuP[,(ncol(XPA)+1):(ncol(XPA) + ncol(XPT))]
+    MCMC.Samples$Var.Person.Ability <- MSP[,1,1]
+    MCMC.Samples$Var.Person.Speed <- MSP[,2,2]
+    MCMC.Samples$Cov.Person.Ability.Speed <- MSP[,1,2]
+    MCMC.Samples$Item.Discrimination <- MAB[,,1]
+    MCMC.Samples$Item.Difficulty <- MAB[,,2]
+    MCMC.Samples$Time.Discrimination <- MAB[,,3]
+    MCMC.Samples$Time.Intensity <- MAB[,,4]
+    MCMC.Samples$Mu.Item.Discrimination <- MmuI[,1]
+    MCMC.Samples$Mu.Item.Difficulty <- MmuI[,2:(2+kia)]
+    MCMC.Samples$Mu.Time.Discrimination <- MmuI[,2+kia+1]
+    MCMC.Samples$Mu.Time.Intensity <- MmuI[,(2+kia+1+1):(ncol(MmuI))]
+    MCMC.Samples$Item.Guessing <- Mguess
+    MCMC.Samples$Sigma2 <- Msigma2
+    MCMC.Samples$CovMat.Item <- MSI
+    
+    Burnin <- round(XG*0.1, 0)
+    Post.Means <- list()
+    Post.Means$Person.Ability <- MT[,1]
+    Post.Means$Person.Speed <- MT[,2]
+    if(ncol(XPA) == 1)
+      Post.Means$Mu.Person.Ability <- mean(MmuP[Burnin:XG,1])
+    else
+      Post.Means$Mu.Person.Ability <- colMeans(MmuP[Burnin:XG,1:ncol(XPA)])
+    if(ncol(XPT) == 1)
+      Post.Means$Mu.Person.Speed <- mean(MmuP[Burnin:XG,(ncol(XPA)+1):(ncol(XPA) + ncol(XPT))])
+    else
+      Post.Means$Mu.Person.Speed <- colMeans(MmuP[Burnin:XG,(ncol(XPA)+1):(ncol(XPA) + ncol(XPT))])
+    Post.Means$Var.Person.Ability <- mean(MSP[Burnin:XG,1,1])
+    Post.Means$Var.Person.Speed <- mean(MSP[Burnin:XG,2,2])
+    Post.Means$Cov.Person.Ability.Speed <- mean(MSP[Burnin:XG,1,2])
+    Post.Means$Item.Discrimination <- colMeans(MAB[Burnin:XG,,1])
+    Post.Means$Item.Difficulty <- colMeans(MAB[Burnin:XG,,2])
+    Post.Means$Time.Discrimination <- colMeans(MAB[Burnin:XG,,3])
+    Post.Means$Time.Intensity <- colMeans(MAB[Burnin:XG,,4])
+    Post.Means$Mu.Item.Discrimination <- mean(MmuI[Burnin:XG,1])
+    if(kia == 0)
+      Post.Means$Mu.Item.Difficulty <- mean(MmuI[Burnin:XG,2:(2+kia)])
+    else 
+      Post.Means$Mu.Item.Difficulty <- colMeans(MmuI[Burnin:XG,2:(2+kia)])
+    Post.Means$Mu.Time.Discrimination <- mean(MmuI[Burnin:XG,2+kia+1])
+    if(kit == 0)
+      Post.Means$Mu.Time.Intensity <- mean(MmuI[Burnin:XG,(2+kia+1+1):(ncol(MmuI))])
+    else
+      Post.Means$Mu.Time.Intensity <- colMeans(MmuI[Burnin:XG,(2+kia+1+1):(ncol(MmuI))])
+    Post.Means$Sigma2 <- colMeans(Msigma2[Burnin:XG, ])
+    Post.Means$CovMat.Item  <- matrix(c(round(apply(MSI[Burnin:XG, 1, ], 2, mean), 3), 
+                                        round(apply(MSI[Burnin:XG, 2, ], 2, mean), 3), round(apply(MSI[Burnin:XG, 3, ], 2, mean), 3), 
+                                        round(apply(MSI[Burnin:XG, 4, ], 2, mean), 3)), ncol = 4, nrow = 4, byrow = TRUE)
+    if (guess)
+      Post.Means$Item.Guessing <- colMeans(Mguess[Burnin:XG,])
+    else
+      Post.Means$Item.Guessing <- NULL
+    
+    
     if (XG > 1000) {
         if (residual) {
-            out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
+            out <- list(Post.Means = Post.Means, MCMC.Samples = MCMC.Samples, Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
                 lZP = lZP, lZPT = lZPT, lZPA = lZPA, lZI = lZI, EAPresid = EAPresid, EAPresidA = EAPresidA, EAPKS = EAPKS, EAPKSA = EAPKSA, PFl = PFl, 
                 PFlp = PFlp, IFl = IFl, IFlp = IFlp, EAPl0 = EAPl0, RT = RT, Y = Y, EAPCP1 = EAPCP1, EAPCP2 = EAPCP2, EAPCP3 = EAPCP3, WL = WL, td = td, guess = guess, par1 = par1, data = data, 
                 XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
         } else {
-            out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
+            out <- list(Post.Means = Post.Means, MCMC.Samples = MCMC.Samples, Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, 
                 RT = RT, Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data, XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
         }
     } else {
-        out <- list(Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, RT = RT, 
+        out <- list(Post.Means = Post.Means, MCMC.Samples = MCMC.Samples, Mtheta = MT, MTSD = MT2, MAB = MAB, MmuP = MmuP, MSP = MSP, MmuI = MmuI, MSI = MSI, Mguess = Mguess, Msigma2 = Msigma2, RT = RT, 
             Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data, XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
     }
     

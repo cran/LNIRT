@@ -17,7 +17,7 @@
 #' @param kia
 #' the number of predictors for the item-difficulty parameters (optional).
 #' @param kit
-#' the number of predictors for the item-discrimination parameters (optional).
+#' the number of predictors for the item time intensity parameters (optional).
 #' 
 #' @return 
 #' an object of class simLNIRT.
@@ -32,7 +32,12 @@ simLNIRT <- function(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit) {
     XPA <- NULL
     Ba <- NULL
     #Ba <- 0
-  } else {
+  }
+  else if (kpa == 0) {
+    XPA <- NULL
+    Ba <- NULL
+  }
+  else {
     XPA <- matrix(rnorm(kpa*N,sd=.5),ncol=kpa,nrow=N) #predictors ability
     XPA <- matrix(XPA,ncol=ncol(XPA),nrow=N) - matrix(apply(XPA,2,mean),ncol=ncol(XPA),nrow=N,byrow=T)
     Ba <- matrix(rnorm(kpa),ncol=1,nrow=kpa)
@@ -43,7 +48,12 @@ simLNIRT <- function(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit) {
     XPT <- NULL
     Bt <- NULL
     #Bt <- 0
-  }else {
+  }
+  else if (kpt == 0) {
+    XPT <- NULL
+    Bt <- NULL
+  }
+  else {
     XPT <- matrix(rnorm(kpt*N,sd=.5),ncol=kpt,nrow=N) #predictors speed
     XPT <- matrix(XPT,ncol=ncol(XPT),nrow=N) - matrix(apply(XPT,2,mean),ncol=ncol(XPT),nrow=N,byrow=T)
     Bt <- matrix(rnorm(kpt),ncol=1,nrow=kpt)
@@ -74,7 +84,12 @@ simLNIRT <- function(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit) {
     kia <- 0
     XIA <- NULL
     Bia <- NULL
-  } else {
+  }
+  else if (kia == 0) {
+    XIA <- NULL
+    Bia <- NULL
+  }
+  else {
     XIA <- matrix(rnorm(kia*K,sd=.25),ncol=kia,nrow=N) #predictors ability
     XIA <- matrix(XIA,ncol=ncol(XIA),nrow=K) - matrix(apply(XIA,2,mean),ncol=ncol(XIA),nrow=K,byrow=T)
     Bia <- matrix(rnorm(kia,sd=.75),ncol=1,nrow=kia)
@@ -84,7 +99,12 @@ simLNIRT <- function(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit) {
     kit <- 0
     XIT <- NULL
     Bit <- NULL
-  }else {
+  }
+  else if (kit == 0) {
+    XIT <- NULL
+    Bit <- NULL
+  }
+  else {
     XIT <- matrix(rnorm(kit*K,sd=.25),ncol=kit,nrow=K) #predictors speed
     XIT <- matrix(XIT,ncol=ncol(XIT),nrow=K) - matrix(apply(XIT,2,mean),ncol=ncol(XIT),nrow=K,byrow=T)
     Bit <- matrix(rnorm(kit,sd=.75),ncol=1,nrow=kit)

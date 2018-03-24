@@ -23,7 +23,7 @@ simLNIRT(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit)
 
 \item{kia}{the number of predictors for the item-difficulty parameters (optional).}
 
-\item{kit}{the number of predictors for the item-discrimination parameters (optional).}
+\item{kit}{the number of predictors for the item time intensity parameters (optional).}
 }
 \value{
 an object of class simLNIRT.

@@ -5,7 +5,7 @@
 \title{Log-normal response time IRT modelling}
 \usage{
 LNIRT(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE,
-  residual = FALSE, WL = FALSE, td = FALSE, alpha, beta, XPA = NULL,
+  residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, XPA = NULL,
   XPT = NULL, XIA = NULL, XIT = NULL)
 }
 \arguments{
@@ -27,9 +27,9 @@ from the environment from which LNIRT is called.}
 
 \item{residual}{compute residuals, requires > 1000 iterations (default: false).}
 
-\item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
+\item{td}{estimate the time-discrimination parameter(default: true).}
 
-\item{td}{set time-discrimination to one (default: false).}
+\item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
 
 \item{alpha}{an optional vector of pre-defined item-discrimination parameters.}
 
@@ -41,7 +41,7 @@ from the environment from which LNIRT is called.}
 
 \item{XIA}{an optional matrix of predictors for the item-difficulty parameters.}
 
-\item{XIT}{an optional matrix of predictors for the item-discrimination parameters.}
+\item{XIT}{an optional matrix of predictors for the item time intensity parameters.}
 }
 \value{
 an object of class LNIRT.
@@ -50,8 +50,16 @@ an object of class LNIRT.
 Log-normal response time IRT modelling
 }
 \examples{
+\dontrun{
 # Log-normal response time IRT modelling
 data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
-summary(LNIRT(RT = RT1, Y = Y, data = data, XG = 500, WL = FALSE))
- 
+out <- LNIRT(RT = RT, Y = Y, data = data, XG = 1500, residual = TRUE, WL = FALSE)
+summary(out) # Print results
+out$Post.Means$Item.Difficulty # Extract posterior mean estimates 
+
+library(coda)
+mcmc.object <- as.mcmc(out$MCMC.Samples$Item.Difficulty) # Extract MCMC samples for coda
+summary(mcmc.object)
+plot(mcmc.object)
+}  
 }

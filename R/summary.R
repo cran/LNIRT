@@ -145,6 +145,28 @@ summary.LNRT <- function(object, ...)
   } else {
     gammamodel <- FALSE
   }
+  
+  ## predictors speed
+  if(length(object$XPT)> 0){
+    predictort <- TRUE
+    nopredictorp <- FALSE
+    kt <- ncol(object$XPT)
+  } else{
+    predictort <- FALSE
+    nopredictorp <- TRUE
+    kt <- NULL
+  }
+  
+  ## Item predictors time intensity
+  if(length(object$XIT)> 0){
+    predictorit <- TRUE
+    nopredictori <- FALSE
+    kit <- ncol(object$XIT)
+  } else{
+    predictorit <- FALSE
+    nopredictori <- TRUE
+    kit <- NULL
+  }
 
   N <- length(object$Mtheta)
   K <- ncol(object$MAB[, , 1])
@@ -169,8 +191,14 @@ summary.LNRT <- function(object, ...)
   
   ## person population parameter estimates
   
-  ppers <- round(mean(object$MmuP[bi:XG, ]), 3)
-  seppers <- round(sqrt(var(object$MmuP[bi:XG, ])), 3)
+  if(!is.null(dim(object$MmuP[bi:XG, ])))
+    ppers <- round(apply(object$MmuP[bi:XG, ], 2, mean), 3)
+  else 
+    ppers <- round(mean(object$MmuP[bi:XG, ]), 3)
+  if (ncol(out$MmuP) == 1)
+    seppers <- round(sqrt(var(object$MmuP[bi:XG, ])), 3)
+  else 
+    seppers <- round(sqrt(apply(object$MmuP[bi:XG, ], 2, var)), 3) 
   
   pSpers <- round(mean(object$MSP[bi:XG, 1, 1]), 3)
   sepSpers <- round(sqrt(var(object$MSP[bi:XG, 1, 1])), 3)
@@ -205,7 +233,8 @@ summary.LNRT <- function(object, ...)
   out <- list(Mtheta = object$Mtheta, MTSD = object$MTSD, MAB = object$MAB, MmuP = object$MmuP, MSP = object$MSP, MmuI = object$MmuI, MSI = object$MSI, Msigma2 = object$Msigma2, 
               theta = object$theta, sigma2 = object$sigma2, RT = object$RT, simv = simv, gammamodel = gammamodel, WL = object$WL, Discrimination = object$Discrimination, N = N, K = K, XG = XG, bi = bi, 
               tdiscr = tdiscr, tintens = tintens, setdiscr = setdiscr, setintens = setintens, pdiscr = pdiscr, sepdiscr = sepdiscr, pSdiscr = pSdiscr, sepSdiscr = sepSdiscr,
-              ppers = ppers, seppers = seppers, pSpers = pSpers, sepSpers = sepSpers, estsigma2 = estsigma2, seestsigma2 = seestsigma2, estnug = estnug, seestnug = seestnug, data = object$data)
+              ppers = ppers, seppers = seppers, pSpers = pSpers, sepSpers = sepSpers, estsigma2 = estsigma2, seestsigma2 = seestsigma2, estnug = estnug, seestnug = seestnug, data = object$data,
+              nopredictorp = nopredictorp, nopredictori = nopredictori, predictort = predictort, predictorit = predictorit, kt = kt, kit = kit)
   if ("lZP" %in% names(object)) {
     tmp <- list(lZP = object$lZP, lZPT = object$lZPT, lZI = object$lZI, EAPresid = object$EAPresid, EAPKS = object$EAPKS, EAPCP = object$EAPCP)
     out <- append(out, tmp)
