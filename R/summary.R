@@ -195,7 +195,7 @@ summary.LNRT <- function(object, ...)
     ppers <- round(apply(object$MmuP[bi:XG, ], 2, mean), 3)
   else 
     ppers <- round(mean(object$MmuP[bi:XG, ]), 3)
-  if (ncol(out$MmuP) == 1)
+  if (ncol(object$MmuP) == 1)
     seppers <- round(sqrt(var(object$MmuP[bi:XG, ])), 3)
   else 
     seppers <- round(sqrt(apply(object$MmuP[bi:XG, ], 2, var)), 3) 
