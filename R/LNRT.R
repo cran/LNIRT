@@ -374,6 +374,6 @@ LNRT <- function(RT, data, XG = 1000, residual = FALSE, td = TRUE, WL = FALSE, X
           RT = RT, td = td, WL = WL, data = data, XPT = XPT, XIT = XIT)
   }
   
-  class(out) <- "LNRT"
+  class(out) <- c("LNRT", "list")
   return(out)
 }

@@ -5,8 +5,8 @@
 \title{Log-normal response time IRT modelling}
 \usage{
 LNIRT(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE,
-  residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, XPA = NULL,
-  XPT = NULL, XIA = NULL, XIT = NULL)
+  residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, phi, lambda,
+  XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL, MBDY, MBDT)
 }
 \arguments{
 \item{RT}{a Person-x-Item matrix of log-response times (time spent on solving an item).}
@@ -35,13 +35,21 @@ from the environment from which LNIRT is called.}
 
 \item{beta}{an optional vector of pre-defined item-difficulty parameters.}
 
+\item{phi}{an optional vector of predefined time discrimination parameters.}
+
+\item{lambda}{an optional vector of predefined time intensity parameters.}
+
 \item{XPA}{an optional matrix of predictors for the person ability parameters.}
 
 \item{XPT}{an optional matrix of predictors for the person speed parameters.}
 
 \item{XIA}{an optional matrix of predictors for the item-difficulty parameters.}
 
-\item{XIT}{an optional matrix of predictors for the item time intensity parameters.}
+\item{XIT}{an optional matrix of predictors for the item-intensity parameters.}
+
+\item{MBDY}{an optional indicator matrix for response missings due to the test design (0=missing by design,1=not missing by design).}
+
+\item{MBDT}{an optional indicator matrix for response time missings due to the test design (0=missing by design,1=not missing by design).}
 }
 \value{
 an object of class LNIRT.

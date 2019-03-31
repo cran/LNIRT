@@ -1072,3 +1072,10 @@ print.summary.LNRT <- function(x, ...)
   cat("\n\n")
    
 }
+
+#' @method print summary.LNIRTQ
+#' @export
+print.summary.LNIRTQ <- function(x, ...)
+{
+  summaryIRTQ(out = x$object)
+}

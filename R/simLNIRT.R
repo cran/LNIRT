@@ -200,7 +200,7 @@ simLNIRT <- function(N, K, rho, td = FALSE, WL = FALSE, kpa, kpt, kia, kit) {
   
   out <- list(Y = Y, Yg = Yg, Y1 = Y1, Y1g = Y1g, RT = RT, RT1 = RT1, theta = theta, ab = ab, sigma2 = sigma2, quess = quess,
               XPA = XPA, XPT = XPT, Ba = Ba, Bt = Bt, XIA = XIA, XIT = XIT, Bia = Bia, Bit = Bit)
-  class(out) <- "simLNIRT"
+  class(out) <- c("simLNIRT", "list")
   return(out)
 }
 

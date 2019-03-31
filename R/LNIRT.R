@@ -1,8 +1,9 @@
 #' Log-normal response time IRT modelling
 #' 
 #' @importFrom MASS mvrnorm
+#' @importFrom methods hasArg
 #' @importFrom stats ks.test pchisq pgamma pnorm qnorm rbeta
-#' rbinom rchisq rgamma rlnorm rnorm runif var
+#' rbinom rchisq rgamma rlnorm rnorm runif var cov2cor sd
 #' @importFrom utils flush.console
 #' 
 #' @param RT
@@ -31,6 +32,10 @@
 #' an optional vector of pre-defined item-discrimination parameters.
 #' @param beta
 #' an optional vector of pre-defined item-difficulty parameters.
+#' @param phi
+#' an optional vector of predefined time discrimination parameters.
+#' @param lambda
+#' an optional vector of predefined time intensity parameters.
 #' @param XPA
 #' an optional matrix of predictors for the person ability parameters.
 #' @param XPT
@@ -38,7 +43,11 @@
 #' @param XIA
 #' an optional matrix of predictors for the item-difficulty parameters.
 #' @param XIT
-#' an optional matrix of predictors for the item time intensity parameters.
+#' an optional matrix of predictors for the item-intensity parameters.
+#' @param MBDY
+#' an optional indicator matrix for response missings due to the test design (0=missing by design,1=not missing by design). 
+#' @param MBDT
+#' an optional indicator matrix for response time missings due to the test design (0=missing by design,1=not missing by design).
 #' 
 #' @return 
 #' an object of class LNIRT. 
@@ -57,9 +66,7 @@
 #' plot(mcmc.object)
 #' }  
 #' @export
-LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL) {
-
-    
+LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, phi, lambda, XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL, MBDY, MBDT){
   
     ## ident = 1: Identification : fix mean item difficulty(intensity) and product item (time) discrimination responses and response times ident =
     ## 2: Identification : fix mean ability and speed and product item discrimination responses and response times ident <- 1 (default)
@@ -95,6 +102,18 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         diffc <- FALSE  #difficulties known
     }
     
+	if(missing(phi)){
+		discrt <- 0 #time discrimination estimated
+	}else{
+		discrt <- 1 #time discrimination known
+	}
+
+	if(missing(lambda)){
+		difft <- 0 #time intensity estimated
+	}else{
+		difft <- 1 #time intensity known
+	}
+
     N <- nrow(Y)
     K <- ncol(Y)
 
@@ -151,7 +170,6 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
   		MmuI <- matrix(0,nrow=XG,ncol=2 + c(ncol(XIA)+ncol(XIT)))
     }
 
-    
     ## population theta (ability - speed)
     theta <- matrix(rnorm(N * 2), ncol = 2) # 1: ability, 2: speed
     muP <- matrix(0, nrow=N, ncol=2) # Mean estimates for person parameters 
@@ -221,14 +239,30 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
     EAPSigmaI <- 1
     iis <- 1
     
+	## Missing By Design
+	if(missing(MBDY)){
+		MBDY <- matrix(1,ncol=K,nrow=N) ## Y : no missing by design, 0=missing by design,1=not missing by design
+		MBDYI <- TRUE #no design missing Y
+	}else{
+		MBDYI <- FALSE #design missings Y
+		Y[MBDY==0] <- 0 #recode design missings to 0 
+	}
+	if(missing(MBDT)){
+		MBDT <- matrix(1,ncol=K,nrow=N) ## RT: no missing by design, 0=missing by design,1=not missing by design
+		MBDTI <- TRUE #no design missing RT
+	}else{
+		MBDTI <- FALSE #design missings RT
+		RT[MBDT==0] <- 0 #recode design missings to 0 
+	}	
+
     # Indicate which responses are missing
     D <- matrix(1, ncol = 1, nrow = N * K)
-    D[which(is.na(Y))] <- 0
+    D[which(is.na(Y))] <- 0	## missing Y values and missing by design
     D <- matrix(D, nrow = N, ncol = K)
     
     # Indicate which RT's are missing
     DT <- matrix(1, ncol = 1, nrow = N * K)
-    DT[which(is.na(RT))] <- 0
+    DT[which(is.na(RT))] <- 0	## missing RT values and missing by design 
     DT <- matrix(DT, nrow = N, ncol = K)
     
     EAPCP1 <- matrix(0, ncol = 1, nrow = N)
@@ -246,13 +280,22 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
     
     for (ii in 1:XG) { # For each iteration
         if (sum(DT == 0) > 0) { # Simulate missing RT's 
-            if (WL) {
-                RT <- SimulateRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = rep(1, K), sigma2 = sigma2, DT = DT)
-            } else {
-                RT <- SimulateRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3], sigma2 = sigma2, DT = DT)
-            }
+			if(MBDTI){
+	            if (WL) {
+	                RT <- SimulateRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = rep(1, K), sigma2 = sigma2, DT = DT)
+	            } else {
+	                RT <- SimulateRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3], sigma2 = sigma2, DT = DT)
+	            }
+			}else{
+				if (WL) {
+	                RT <- SimulateRTMBD(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = rep(1, K), sigma2 = sigma2, DT = DT, MBDT=MBDT)
+	            } else {
+	                RT <- SimulateRTMBD(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3], sigma2 = sigma2, DT = DT, MBDT=MBDT)
+	            }
+			}
         }
         # ability test
+	if(MBDYI){	
         if (PNO) { # If guessing
             if (sum(D == 0) > 0) { # Simulate missing responses 
                 Y <- SimulateY(Y = Y, theta = theta[, 1], alpha0 = ab[, 1], beta0 = ab[, 2], guess0 = guess0, D = D)
@@ -271,14 +314,44 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
                 ZR <- DrawZ_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], theta0 = theta[, 1], S = Y, D = D)
             }
         }
-        
+	} else {
+        if (PNO) { # If guessing
+            if (sum(D == 0) > 0) { # Simulate missing responses 
+                Y <- SimulateYMBD(Y = Y, theta = theta[, 1], alpha0 = ab[, 1], beta0 = ab[, 2], guess0 = guess0, D = D, MBDY = MBDY)
+            }
+            if (par1) {
+                SR <- DrawSMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2] * ab[, 1], guess0 = guess0, theta0 = theta[, 1], Y = Y, MBDY = MBDY)
+                ZR <- DrawZMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2] * ab[, 1], theta0 = theta[, 1], S = SR, D = D, MBDY = MBDY)
+            } else {
+                SR <- DrawSMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], guess0 = guess0, theta0 = theta[, 1], Y = Y, MBDY = MBDY)
+                ZR <- DrawZMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], theta0 = theta[, 1], S = SR, D = D, MBDY = MBDY)
+            }
+        } else {
+            if (par1) {
+                ZR <- DrawZMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2] * ab[, 1], theta0 = theta[, 1], S = Y, D = D, MBDY = MBDY)
+            } else {
+                ZR <- DrawZMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], theta0 = theta[, 1], S = Y, D = D, MBDY = MBDY)
+            }
+        }
+	}
+
+       
         # Draw ability parameter 
         dum <- Conditional(1, muP, SigmaP, theta)
+	if(MBDYI){	
         if (par1) {
             theta[, 1] <- DrawTheta_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2] * ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR)
         } else {
             theta[, 1] <- DrawTheta_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], Z = ZR, mu = dum$CMU, sigma = dum$CVAR)
         }
+	}else{
+        if (par1) {
+            theta[, 1] <- DrawThetaMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2] * ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR,MBDY=MBDY)
+        } else {
+            theta[, 1] <- DrawThetaMBD_LNIRT(alpha0 = ab[, 1], beta0 = ab[, 2], Z = ZR, mu = dum$CMU, sigma = dum$CVAR,MBDY=MBDY)
+        }
+	}	
+
         if (ident == 2) {
             # rescale for identification
             theta[, 1] <- theta[, 1] - mean(theta[, 1])
@@ -286,17 +359,24 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         
         # Draw speed parameter 
         dum <- Conditional(2, muP, SigmaP, theta)
+	if(MBDTI){
         if (par1) {
             theta[, 2] <- DrawZeta(RT = RT, phi = ab[, 3], lambda = ab[, 3] * ab[, 4], sigma2 = sigma2, mu = as.vector(dum$CMU), sigmaz = as.vector(dum$CVAR))  ## speed 
         } else {
             theta[, 2] <- DrawZeta(RT = RT, phi = ab[, 3], lambda = ab[, 4], sigma2 = sigma2, mu = as.vector(dum$CMU), sigmaz = as.vector(dum$CVAR))  ## speed 
         }
+	}else{
+        if (par1) {
+            theta[, 2] <- DrawZetaMBD(RT = RT, phi = ab[, 3], lambda = ab[, 3] * ab[, 4], sigma2 = sigma2, mu = as.vector(dum$CMU), sigmaz = as.vector(dum$CVAR),MBDT=MBDT)  ## speed 
+        } else {
+            theta[, 2] <- DrawZetaMBD(RT = RT, phi = ab[, 3], lambda = ab[, 4], sigma2 = sigma2, mu = as.vector(dum$CMU), sigmaz = as.vector(dum$CVAR),MBDT=MBDT)  ## speed 
+        }
+	}
         
         # Rescale for identification
         if (ident == 2) {
             theta[, 2] <- theta[, 2] - mean(theta[, 2])
         }
-        
         
         MCMC.Samples$Person.Ability[ii, ] <- theta[, 1]
         MCMC.Samples$Person.Speed[ii, ] <- theta[, 2]
@@ -306,7 +386,11 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         
         # Draw guessing parameter from beta distribution
         if (PNO) {
-            guess0 <- DrawC_LNIRT(S = SR, Y = Y)
+			if(MBDYI){
+	            guess0 <- DrawC_LNIRT(S = SR, Y = Y)
+			}else{
+	            guess0 <- DrawCMBD_LNIRT(S = SR, Y = Y,MBDY=MBDY)
+			}	
         }
         Mguess[ii, ] <- guess0
         
@@ -320,11 +404,19 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         # Draw item discrimination parameter
         if (discr) {
             dum <- Conditional(kk = 1, Mu = muI, Sigma = SigmaI, Z = ab1)  #discrimination
-            if (par1 == 1) {
-                ab[, 1] <- abs(DrawAlpha_LNIRT(theta = theta[, 1], beta = ab[, 2], Z = ZR, mu = dum$CMU, sigma = dum$CVAR))
-            } else {
-                ab[, 1] <- abs(DrawPhi_LNIRT(RT = ZR, lambda = -ab[, 2], zeta = -theta[, 1], sigma2 = rep(1, K), mu = dum$CMU, sigmal = dum$CVAR))
-            }
+			if(MBDYI){
+	            if (par1 == 1) {
+	                ab[, 1] <- abs(DrawAlpha_LNIRT(theta = theta[, 1], beta = ab[, 2], Z = ZR, mu = dum$CMU, sigma = dum$CVAR))
+	            } else {
+	                ab[, 1] <- abs(DrawPhi_LNIRT(RT = ZR, lambda = -ab[, 2], zeta = -theta[, 1], sigma2 = rep(1, K), mu = dum$CMU, sigmal = dum$CVAR))
+	            }
+			}else{
+				if (par1 == 1) {
+					ab[, 1] <- abs(DrawAlphaMBD_LNIRT(theta=theta[,1], beta=ab[,2],Z = ZR,mu=dum$CMU,sigma=dum$CVAR,MBDY=MBDY))
+				} else {
+					ab[, 1] <- abs(DrawAlphaMBD2_LNIRT(theta=theta[,1],beta=ab[,2],Z = ZR,mu=dum$CMU,sigma=dum$CVAR,MBDY=MBDY))
+				}
+			}
         } else {
             ab[, 1] <- alpha
         }
@@ -339,11 +431,19 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         # Draw item difficulty parameter
         if (diffc) {
             dum <- Conditional(kk = 2, Mu = muI, Sigma = SigmaI, Z = ab1)  #difficulty
-            if (par1 == 1) {
-                ab[, 2] <- DrawBeta_LNIRT(theta = theta[, 1], alpha = ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR)
-            } else {
-                ab[, 2] <- -DrawLambda_LNIRT(ZR, -ab[, 1], theta[, 1], rep(1, K), dum$CMU, dum$CVAR)$lambda
-            }
+			if(MBDYI){
+	            if (par1 == 1) {
+	                ab[, 2] <- DrawBeta_LNIRT(theta = theta[, 1], alpha = ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR)
+	            } else {
+	                ab[, 2] <- -DrawLambda_LNIRT(ZR, -ab[, 1], theta[, 1], rep(1, K), dum$CMU, dum$CVAR)$lambda
+	            }
+			}else{
+	            if (par1 == 1) {
+	                ab[, 2] <- DrawBetaMBD_LNIRT(theta = theta[, 1], alpha = ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR,MBDY=MBDY)
+	            } else {
+	                ab[, 2] <- DrawBetaMBD2_LNIRT(theta = theta[, 1], alpha = ab[, 1], Z = ZR, mu = dum$CMU, sigma = dum$CVAR,MBDY=MBDY)
+	            }
+			}
         } else {
             ab[, 2] <- beta
         }
@@ -354,17 +454,23 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
             # rescale for identification
             ab[, 2] <- ab[, 2] - mean(ab[, 2])
         }
-        
+
         # Draw time discrimination parameter
         if ((WL) | (!td)) {
             # no time discrimination, 1/(sqrt(error variance)) = discrimination on MVN prior
             ab[, 3] <- 1
         } else {
-            dum <- Conditional(3, muI, SigmaI, ab)  #time discrimination
-            # if(par1==1){ ab[,3] <- abs(DrawPhi_LNIRT(RT,ab[,3]*ab[,4],theta[,2],sigma2,dum$CMU,dum$CVAR)) }else{
-            ab[, 3] <- abs(DrawPhi_LNIRT(RT, ab[, 4], theta[, 2], sigma2, dum$CMU, dum$CVAR))
-            # }
-            ab[, 3] <- ab[, 3]/(prod(ab[, 3])^(1/K))
+			if(discrt==0){	
+	            dum <- Conditional(3, muI, SigmaI, ab)  #time discrimination
+				if(MBDTI){
+		            ab[, 3] <- abs(DrawPhi_LNIRT(RT, ab[, 4], theta[, 2], sigma2, dum$CMU, dum$CVAR))
+				}else{
+		            ab[, 3] <- abs(DrawPhiMBD_LNIRT(RT, ab[, 4], theta[, 2], sigma2, dum$CMU, dum$CVAR,MBDT=MBDT))
+				}
+			}else{
+				ab[,3] <- phi	
+			}
+             ab[, 3] <- ab[, 3]/(prod(ab[, 3])^(1/K))
         }
         
         if (WL) {
@@ -374,9 +480,17 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         }
         
         # Draw time intensity parameter
-        dum <- Conditional(kk = 4, Mu = muI, Sigma = SigmaI, Z = ab1)  #time intensity
-        ab[, 4] <- DrawLambda_LNIRT(RT, ab[, 3], theta[, 2], sigma2, dum$CMU, dum$CVAR)$lambda
-        # if(par1==1){ ab[,4] <- ab[,4]/ab[,3] } rescale for identification
+		if(difft==0){
+	        dum <- Conditional(kk = 4, Mu = muI, Sigma = SigmaI, Z = ab1)  #time intensity
+			if(MBDTI){
+		        ab[, 4] <- DrawLambda_LNIRT(RT, ab[, 3], theta[, 2], sigma2, dum$CMU, dum$CVAR)$lambda
+			}else{
+		        ab[, 4] <- DrawLambdaMBD_LNIRT(RT, ab[, 3], theta[, 2], sigma2, dum$CMU, dum$CVAR,MBDT=MBDT)
+			}
+		}else{
+			ab[,4] <- lambda
+		}
+
         if (ident == 1) {
             ab[, 4] <- ab[, 4] - mean(ab[, 4])
         }
@@ -386,7 +500,11 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
         
         # WL: Measurement error variance for time discrimination
         # Else: Measurement error variance for time term 
-        sigma2 <- SampleS2_LNIRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3])
+		if(MBDTI){
+	        sigma2 <- SampleS2_LNIRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3])
+		}else{
+	        sigma2 <- SampleS2MBD_LNIRT(RT = RT, zeta = theta[, 2], lambda = ab[, 4], phi = ab[, 3],MBDT=MBDT)
+		}
         if (WL) {
             Msigma2[ii, 1:K] <- 1/sqrt(sigma2)
         } else {
@@ -483,6 +601,7 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
             ############################## 
             
             if (residual) {
+			if(MBDYI){	
                 
                 ## IRT Fit Evaluation
                 if (par1) {
@@ -512,9 +631,39 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
                 IFl <- ((iis - 1) * IFl + dum$IFl)/iis
                 PFlp <- ((iis - 1) * PFlp + dum$PFlp)/iis
                 IFlp <- ((iis - 1) * IFlp + dum$IFlp)/iis
+             }else{
+                ## IRT Fit Evaluation
+                if (par1) {
+                  beta1 <- ab[, 1] * ab[, 2]
+                } else {
+                  beta1 <- ab[, 2]
+                }
+                if (PNO) {
+                  dum <- residualAMBD(Z = ZR, Y = SR, theta = theta[, 1], alpha = ab[, 1], beta = beta1, EAPtheta = EAPtheta[, 1], EAPalpha = EAPalpha, 
+                    EAPbeta = EAPbeta,MBDY=MBDY)
+                } else {
+                  dum <- residualAMBD(Z = ZR, Y = Y, theta = theta[, 1], alpha = ab[, 1], beta = beta1, EAPtheta = EAPtheta[, 1], EAPalpha = EAPalpha, 
+                    EAPbeta = EAPbeta,MBDY=MBDY)
+                }
+                EAPKSA <- (dum$KS[1:K, 1] + (iis - 1) * EAPKSA)/iis
+                EAPresidA <- (dum$presidA + (iis - 1) * EAPresidA)/iis
                 
+                # lZPAT <- lZPAT + dum$lZPAT
+                lZPA <- lZPA + dum$lZPA
+                # lZIA <- lZIA + dum$lZIA
+                CF2 <- ifelse(dum$PFlp < 0.05, 1, 0)  #significance level = .05
+                EAPCP2 <- (CF2 + (iis - 1) * EAPCP2)/iis
+                
+                
+                EAPl0 <- ((iis - 1) * EAPl0 + dum$l0)/iis
+                PFl <- ((iis - 1) * PFl + dum$PFl)/iis
+                IFl <- ((iis - 1) * IFl + dum$IFl)/iis
+                PFlp <- ((iis - 1) * PFlp + dum$PFlp)/iis
+                IFlp <- ((iis - 1) * IFlp + dum$IFlp)/iis
+			}   
                 ############################## 
-                
+
+			if(MBDTI){	
                 ## Log-Normal Fit Evaluation
                 if (par1) {
                   lambda1 <- ab[, 3] * ab[, 4]
@@ -535,16 +684,35 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
                   EAPphi = EAPphi, EAPsigma2 = EAPsigma2)
                 EAPresid <- EAPresid + dum$presid
                 EAPKS <- (dum$KS[1:K, 1] + (iis - 1) * EAPKS)/iis
+			}else{
+                ## Log-Normal Fit Evaluation
+                if (par1) {
+                  lambda1 <- ab[, 3] * ab[, 4]
+                } else {
+                  lambda1 <- ab[, 4]
+                }
+                dum <- personfitLNMBD(RT = RT, theta = theta[, 2], phi = ab[, 3], lambda = lambda1, sigma2 = sigma2, MBDT=MBDT)  # lZ statistic
+                lZP <- lZP + dum$lZP
+                lZPT <- lZPT + dum$lZPT
+                CF1 <- ifelse(dum$lZP < 0.05, 1, 0)  #significance level = .05
+                EAPCP1 <- (CF1 + (iis - 1) * EAPCP1)/iis  #speed
+                EAPCP3 <- (CF1 * CF2 + (iis - 1) * EAPCP3)/iis
                 
+                dum <- itemfitLNMBD(RT = RT, theta = theta[, 2], phi = ab[, 3], lambda = lambda1, sigma2 = sigma2, MBDT=MBDT)
+                lZI <- lZI + dum$lZI
+                
+                dum <- residualLNMBD(RT = RT, theta = theta[, 2], phi = ab[, 3], lambda = lambda1, sigma2 = sigma2, EAPtheta = EAPtheta[, 2], EAPlambda = EAPlambda, 
+                  EAPphi = EAPphi, EAPsigma2 = EAPsigma2,MBDT=MBDT)
+                EAPresid <- EAPresid + dum$presid ##for missing values set to zero 
+                EAPKS <- (dum$KS[1:K, 1] + (iis - 1) * EAPKS)/iis
+			}
                 iis <- iis + 1
-            }
-            
-        }
+		}
+	   }
         
         if (ii%%100 == 0) 
             cat("Iteration ", ii, " ", "\n")
         flush.console()
-        
     }
     
     
@@ -645,7 +813,7 @@ LNIRT <- function(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE, residual 
             Y = Y, WL = WL, td = td, guess = guess, par1 = par1, data = data, XPA = XPA, XPT = XPT, XIA = XIA, XIT = XIT)
     }
     
-    class(out) <- "LNIRT"
+    class(out) <- c("LNIRT", "list")
     return(out)
     
 }
