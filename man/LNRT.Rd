@@ -4,20 +4,34 @@
 \alias{LNRT}
 \title{Log-normal response time modelling}
 \usage{
-LNRT(RT, data, XG = 1000, residual = FALSE, td = TRUE, WL = FALSE,
-  XPT = NULL, XIT = NULL)
+LNRT(
+  RT,
+  data,
+  XG = 1000,
+  burnin = 10,
+  XGresid = 1000,
+  residual = FALSE,
+  td = TRUE,
+  WL = FALSE,
+  XPT = NULL,
+  XIT = NULL
+)
 }
 \arguments{
 \item{RT}{a Person-x-Item matrix of log-response times (time spent on solving an item).}
 
-\item{data}{either a list or a simLNIRT object containing the response time matrix. 
+\item{data}{either a list or a simLNIRT object containing the response time matrix.
 If a simLNIRT object is provided, in the summary the simulated time parameters are shown alongside of the estimates.
 If the RT variable cannot be found in the list, or if no data object is given, then the RT variable is taken
 from the environment from which LNRT is called.}
 
 \item{XG}{the number of MCMC iterations to perform (default: 1000).}
 
-\item{residual}{compute residuals, requires > 1000 iterations (default: false).}
+\item{burnin}{the percentage of MCMC iterations to discard as burn-in period (default: 10).}
+
+\item{XGresid}{the number of MCMC iterations to perform before residuals are computed (default: 1000).}
+
+\item{residual}{compute residuals, >1000 iterations are recommended (default: false).}
 
 \item{td}{estimate the time-discrimination parameter (default: true).}
 
@@ -45,5 +59,5 @@ library(coda)
 mcmc.object <- as.mcmc(out$MCMC.Samples$Time.Intensity) # Extract MCMC samples for coda
 summary(mcmc.object)
 plot(mcmc.object)
-}  
+}
 }

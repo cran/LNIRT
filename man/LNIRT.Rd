@@ -4,32 +4,59 @@
 \alias{LNIRT}
 \title{Log-normal response time IRT modelling}
 \usage{
-LNIRT(RT, Y, data, XG = 1000, guess = FALSE, par1 = FALSE,
-  residual = FALSE, td = TRUE, WL = FALSE, alpha, beta, phi, lambda,
-  XPA = NULL, XPT = NULL, XIA = NULL, XIT = NULL, MBDY, MBDT)
+LNIRT(
+  RT,
+  Y,
+  data,
+  XG = 1000,
+  burnin = 10,
+  XGresid = 1000,
+  guess = FALSE,
+  par1 = FALSE,
+  residual = FALSE,
+  td = TRUE,
+  WL = FALSE,
+  ident = 2,
+  alpha,
+  beta,
+  phi,
+  lambda,
+  XPA = NULL,
+  XPT = NULL,
+  XIA = NULL,
+  XIT = NULL,
+  MBDY = NULL,
+  MBDT = NULL
+)
 }
 \arguments{
 \item{RT}{a Person-x-Item matrix of log-response times (time spent on solving an item).}
 
 \item{Y}{a Person-x-Item matrix of responses.}
 
-\item{data}{either a list or a simLNIRT object containing the response time and response matrices 
-and optionally the predictors for the item and person parameters. 
+\item{data}{either a list or a simLNIRT object containing the response time and response matrices
+and optionally the predictors for the item and person parameters.
 If a simLNIRT object is provided, in the summary the simulated item and time parameters are shown alongside of the estimates.
 If the required variables cannot be found in the list, or if no data object is given, then the variables are taken
 from the environment from which LNIRT is called.}
 
 \item{XG}{the number of MCMC iterations to perform (default: 1000).}
 
+\item{burnin}{the percentage of MCMC iterations to discard as burn-in period (default: 10).}
+
+\item{XGresid}{the number of MCMC iterations to perform before residuals are computed (default: 1000).}
+
 \item{guess}{include guessing parameters in the IRT model (default: false).}
 
 \item{par1}{use alternative parameterization (default: false).}
 
-\item{residual}{compute residuals, requires > 1000 iterations (default: false).}
+\item{residual}{compute residuals, >1000 iterations are recommended (default: false).}
 
 \item{td}{estimate the time-discrimination parameter(default: true).}
 
 \item{WL}{define the time-discrimination parameter as measurement error variance parameter (default: false).}
+
+\item{ident}{set identification rule (default: 2).}
 
 \item{alpha}{an optional vector of pre-defined item-discrimination parameters.}
 
@@ -47,9 +74,9 @@ from the environment from which LNIRT is called.}
 
 \item{XIT}{an optional matrix of predictors for the item-intensity parameters.}
 
-\item{MBDY}{an optional indicator matrix for response missings due to the test design (0=missing by design,1=not missing by design).}
+\item{MBDY}{an optional indicator matrix for response missings due to the test design (0: missing by design, 1: not missing by design).}
 
-\item{MBDT}{an optional indicator matrix for response time missings due to the test design (0=missing by design,1=not missing by design).}
+\item{MBDT}{an optional indicator matrix for response time missings due to the test design (0: missing by design, 1: not missing by design).}
 }
 \value{
 an object of class LNIRT.
@@ -63,11 +90,11 @@ Log-normal response time IRT modelling
 data <- simLNIRT(N = 500, K = 20, rho = 0.8, WL = FALSE)
 out <- LNIRT(RT = RT, Y = Y, data = data, XG = 1500, residual = TRUE, WL = FALSE)
 summary(out) # Print results
-out$Post.Means$Item.Difficulty # Extract posterior mean estimates 
+out$Post.Means$Item.Difficulty # Extract posterior mean estimates
 
 library(coda)
 mcmc.object <- as.mcmc(out$MCMC.Samples$Item.Difficulty) # Extract MCMC samples for coda
 summary(mcmc.object)
 plot(mcmc.object)
-}  
+}
 }
