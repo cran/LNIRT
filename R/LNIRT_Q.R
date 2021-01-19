@@ -44,15 +44,13 @@ LNIRTQ <-
     ## X = explanatory (time) variables for random person speed
     
     if (XG <= 0) {
-      print("Error: XG must be > 0.")
-      return (NULL)
+      stop("XG must be > 0.")
     }
     if ((burnin <= 0) || (burnin >= XG)) {
-      print("Error: burn-in period must be between 0% and 100%.")
-      return (NULL)
+      stop("burn-in period must be between 0% and 100%.")
     }
     if (residual && (XGresid >= XG || XGresid <= 0)) {
-      print("Warning: XGresid must be < XG and > 0. Residuals will not be computed.")
+      warning("XGresid must be < XG and > 0. Residuals will not be computed.")
       residual <- FALSE
     }
     
@@ -83,8 +81,7 @@ LNIRTQ <-
     RT <- as.matrix(RT)
     
     if ((nrow(Y) != nrow(RT)) || (ncol(Y) != ncol(RT))) {
-      print("Error: Y and RT must be of equal dimension.")
-      return (NULL)
+      stop("Y and RT must be of equal dimension.")
     }
     
     ## Initialise all parameters
@@ -100,11 +97,6 @@ LNIRTQ <-
     cat (" \n")
     cat ("   LNIRT v", packageDescription("LNIRT")$Version, "\n", sep = "")
     cat ("   ", rep('-', 20), "\n\n", sep = "")
-    # cat ("   Jean-Paul Fox \n")
-    # cat ("   Konrad Klotzke \n")
-    # cat ("   ", rep('-', 20), "\n\n", sep = "")
-    
-    #cat ("   ", rep('-', 40), "\n", sep = "")
     cat (
       "   * MCMC sampler initialized (XG:",
       XG,
@@ -115,7 +107,6 @@ LNIRTQ <-
     )
     cat ("   * Binary response matrix loaded (", N, "x", K, ") \n", sep = "")
     cat ("   * Response time matrix loaded (", N, "x", K, ") \n\n", sep = "")
-    #cat ("   ", rep('-', 40), "\n\n", sep = "")
     
     # Initialize progress bar
     cat ("   MCMC progress: \n")
@@ -400,7 +391,7 @@ LNIRTQ <-
       EAPresid <- EAPresid / (XG - XGresid)
     }
     
-    if (!(any(class(data) == "simLNIRTQ"))) {
+    if (!(is(data, "simLNIRTQ"))) {
       data <- NULL # only attach sim data for summary function
     }
     

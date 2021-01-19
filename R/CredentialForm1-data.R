@@ -37,6 +37,7 @@
 #' @keywords datasets
 #'
 #' @references Cizek GJ, Wollack JA (eds.) (2016). Handbook of Quantitative Methods for Detecting Cheating on Tests. Routledge.
-#' (\href{https://www.taylorfrancis.com/books/9781315743097}{Taylor&Francis})
+#' (\href{https://www.taylorfrancis.com/books/handbook-quantitative-methods-detecting-cheating-tests-gregory-cizek-james-wollack/e/10.4324/9781315743097}{Taylor&Francis})
 #'
+#' @example inst/examples/example.CredentialForm1.R
 "CredentialForm1"

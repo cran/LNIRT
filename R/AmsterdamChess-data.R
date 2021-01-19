@@ -26,4 +26,5 @@
 #' @references van der Maas, H. L., & Wagenmakers, E. J. (2005). A psychometric analysis of chess expertise. The American journal of psychology, 118(1), 29-60.
 #' (\href{https://pubmed.ncbi.nlm.nih.gov/15822609}{PubMed})
 #'
+#' @example inst/examples/example.AmsterdamChess.R
 "AmsterdamChess"

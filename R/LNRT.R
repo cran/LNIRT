@@ -58,15 +58,13 @@ LNRT <-
     ident <- 2 # (to investigate person fit using latent scores)
     
     if (XG <= 0) {
-      print("Error: XG must be > 0.")
-      return (NULL)
+      stop("XG must be > 0.")
     }
     if ((burnin <= 0) || (burnin >= 100)) {
-      print("Error: burn-in period must be between 0% and 100%.")
-      return (NULL)
+      stop("burn-in period must be between 0% and 100%.")
     }
     if (residual && (XGresid >= XG || XGresid <= 0)) {
-      print("Warning: XGresid must be < XG and > 0. Residuals will not be computed.")
+      warning("XGresid must be < XG and > 0. Residuals will not be computed.")
       residual <- FALSE
     }
     
@@ -101,15 +99,13 @@ LNRT <-
     if (!is.null(XPT)) {
       XPT <- as.matrix(XPT)
       if (nrow(XPT) != N) {
-        print("Error: nrow(XPT) must be equal to the number of persons.")
-        return (NULL)
+        stop("nrow(XPT) must be equal to the number of persons.")
       }
     }
     if (!is.null(XIT)) {
       XIT <- as.matrix(XIT)
       if (nrow(XIT) != K) {
-        print("Error: nrow(XIT) must be equal to the number of items.")
-        return (NULL)
+        stop("nrow(XIT) must be equal to the number of items.")
       }
     }
     
@@ -120,11 +116,6 @@ LNRT <-
     cat (" \n")
     cat ("   LNIRT v", packageDescription("LNIRT")$Version, "\n", sep = "")
     cat ("   ", rep('-', 20), "\n\n", sep = "")
-    # cat ("   Jean-Paul Fox \n")
-    # cat ("   Konrad Klotzke \n")
-    # cat ("   ", rep('-', 20), "\n\n", sep = "")
-    
-    #cat ("   ", rep('-', 40), "\n", sep = "")
     cat (
       "   * MCMC sampler initialized (XG:",
       XG,
@@ -134,7 +125,6 @@ LNRT <-
       sep = ""
     )
     cat ("   * Response time matrix loaded (", N, "x", K, ") \n\n", sep = "")
-    #cat ("   ", rep('-', 40), "\n\n", sep = "")
     
     # Initialize progress bar
     cat ("   MCMC progress: \n")
@@ -539,7 +529,7 @@ LNRT <-
     Post.Means$CovMat.Item  <-
       c(round(apply(MSI[XGburnin:XG, , 1], 2, mean), 3), round(apply(MSI[XGburnin:XG, , 2], 2, mean), 3))
     
-    if (!(any(class(data) == "simLNIRT"))) {
+    if (!(is(data, "simLNIRT"))) {
       data <- NULL # only attach sim data for summary function
     }
     

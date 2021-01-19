@@ -1,7 +1,7 @@
 #' Log-normal response time IRT modelling
 #'
 #' @importFrom MASS mvrnorm
-#' @importFrom methods hasArg
+#' @importFrom methods hasArg is
 #' @importFrom stats ks.test pchisq pgamma pnorm qnorm rbeta
 #' rbinom rchisq rgamma rlnorm rnorm runif var cov2cor sd
 #' @importFrom utils flush.console packageDescription setTxtProgressBar txtProgressBar
@@ -101,19 +101,16 @@ LNIRT <-
     # ident <- 2 # (to investigate person fit using latent scores)
     
     if (XG <= 0) {
-      print("Error: XG must be > 0.")
-      return (NULL)
+      stop("XG must be > 0.")
     }
     if ((burnin <= 0) || (burnin >= 100)) {
-      print("Error: burn-in period must be between 0% and 100%.")
-      return (NULL)
+      stop("burn-in period must be between 0% and 100%.")
     }
     if (ident != 1 && ident != 2) {
-      print("Error: ident must be 1 or 2.")
-      return (NULL)
+      stop("ident must be 1 or 2.")
     }
     if (residual && (XGresid >= XG || XGresid <= 0)) {
-      print("Warning: XGresid must be < XG and > 0. Residuals will not be computed.")
+      warning("XGresid must be < XG and > 0. Residuals will not be computed.")
       residual <- FALSE
     }
     
@@ -170,8 +167,7 @@ LNIRT <-
     RT <- as.matrix(RT)
     
     if ((nrow(Y) != nrow(RT)) || (ncol(Y) != ncol(RT))) {
-      print("Error: Y and RT must be of equal dimension.")
-      return (NULL)
+      stop("Y and RT must be of equal dimension.")
     }
     
     N <- nrow(Y)
@@ -180,55 +176,44 @@ LNIRT <-
     if (!is.null(XPA)) {
       XPA <- as.matrix(XPA)
       if (nrow(XPA) != N) {
-        print("Error: nrow(XPA) must be equal to the number of persons.")
-        return (NULL)
+        stop("nrow(XPA) must be equal to the number of persons.")
       }
     }
     if (!is.null(XPT)) {
       XPT <- as.matrix(XPT)
       if (nrow(XPT) != N) {
-        print("Error: nrow(XPT) must be equal to the number of persons.")
-        return (NULL)
+        stop("nrow(XPT) must be equal to the number of persons.")
       }
     }
     if (!is.null(XIA)) {
       XIA <- as.matrix(XIA)
       if (nrow(XIA) != K) {
-        print("Error: nrow(XIA) must be equal to the number of items.")
-        return (NULL)
+        stop("nrow(XIA) must be equal to the number of items.")
       }
     }
     if (!is.null(XIT)) {
       XIT <- as.matrix(XIT)
       if (nrow(XIT) != K) {
-        print("Error: nrow(XIT) must be equal to the number of items.")
-        return (NULL)
+        stop("nrow(XIT) must be equal to the number of items.")
       }
     }
     
     if (!is.null(MBDY)) {
       MBDY <- as.matrix(MBDY)
       if ((nrow(MBDY) != nrow(Y)) || (ncol(MBDY) != ncol(Y))) {
-        print("Error: MBDY and Y must be of equal dimension.")
-        return (NULL)
+        stop("MBDY and Y must be of equal dimension.")
       }
     }
     if (!is.null(MBDT)) {
       MBDT <- as.matrix(MBDT)
       if ((nrow(MBDT) != nrow(RT)) || (ncol(MBDT) != ncol(RT))) {
-        print("Error: MBDT and RT must be of equal dimension.")
-        return (NULL)
+        stop("MBDT and RT must be of equal dimension.")
       }
     }
     
     cat (" \n")
     cat ("   LNIRT v", packageDescription("LNIRT")$Version, "\n", sep = "")
     cat ("   ", rep('-', 20), "\n\n", sep = "")
-    # cat ("   Jean-Paul Fox \n")
-    # cat ("   Konrad Klotzke \n")
-    # cat ("   ", rep('-', 20), "\n\n", sep = "")
-    
-    #cat ("   ", rep('-', 40), "\n", sep = "")
     cat (
       "   * MCMC sampler initialized (XG:",
       XG,
@@ -239,7 +224,6 @@ LNIRT <-
     )
     cat ("   * Binary response matrix loaded (", N, "x", K, ") \n", sep = "")
     cat ("   * Response time matrix loaded (", N, "x", K, ") \n\n", sep = "")
-    #cat ("   ", rep('-', 40), "\n\n", sep = "")
     
     # Initialize progress bar
     cat ("   MCMC progress: \n")
@@ -1426,7 +1410,7 @@ LNIRT <-
     else
       Post.Means$Item.Guessing <- NULL
     
-    if (!(any(class(data) == "simLNIRT"))) {
+    if (!(is(data, "simLNIRT"))) {
       data <- NULL # only attach sim data for summary function
     }
     
